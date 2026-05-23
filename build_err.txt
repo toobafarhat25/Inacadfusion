@@ -1,0 +1,29 @@
+
+> inacad-fusion@1.0.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 13179 modules transformed.
+[31mx[39m Build failed in 18.40s
+[31merror during build:
+[31msrc/pages/student/StudentProfile.jsx (18:7): "default" is not exported by "src/components/shared/SkeletonLoader.jsx", imported by "src/pages/student/StudentProfile.jsx".[31m
+file: [36mE:/Tooba3.0/src/pages/student/StudentProfile.jsx:18:7[31m
+[33m
+16: import { useAuth } from '../../context/AuthContext'
+17: import Snackbar from '../../components/shared/Snackbar'
+18: import PageLoader from '../../components/shared/SkeletonLoader'
+           ^
+19: 
+20: const StudentProfile = () => {
+[31m
+    at getRollupError (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at Module.error (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:17022:16)
+    at Module.traceVariable (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:17478:29)
+    at ModuleScope.findVariable (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:15141:39)
+    at ReturnValueScope.findVariable (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at FunctionBodyScope.findVariable (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at TrackingScope.findVariable (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:5688:38)
+    at Identifier.bind (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:5462:40)
+    at CallExpression.bind (file:///E:/Tooba3.0/node_modules/rollup/dist/es/shared/node-entry.js:2825:28)[39m

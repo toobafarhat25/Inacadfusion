@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sentence-transformers
+pymongo
+pandas
+torch
+python-multipart
+pydantic
