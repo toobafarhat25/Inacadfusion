@@ -62,13 +62,20 @@ def load_data_from_db():
     except Exception as e:
         print(f"Error loading data: {e}")
 
+def initialize_ai():
+    global model
+    try:
+        print(f"Loading AI Model: {MODEL_NAME}...")
+        model = SentenceTransformer(MODEL_NAME, device=DEVICE)
+        load_data_from_db()
+    except Exception as e:
+        print(f"Error during AI initialization: {e}")
+
 # ─── STARTUP ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup_event():
-    global model
-    print(f"Loading AI Model: {MODEL_NAME}...")
-    model = SentenceTransformer(MODEL_NAME, device=DEVICE)
-    load_data_from_db()
+    import threading
+    threading.Thread(target=initialize_ai, daemon=True).start()
 
 # ─── API ENDPOINTS ──────────────────────────────────────────────────────────
 class QueryRequest(BaseModel):
