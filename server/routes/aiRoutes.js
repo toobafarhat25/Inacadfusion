@@ -33,7 +33,7 @@ router.post('/recommend', protect, async (req, res) => {
     // We can return this directly or hydrate it with more DB data if needed.
     res.status(200).json({
       success: true,
-      data: aiData.matches
+      data: aiData.data || aiData.matches || []
     });
 
   } catch (error) {
