@@ -1,5 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import React, { useState, lazy, Suspense, useEffect, useLayoutEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Box, CircularProgress } from '@mui/material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -43,6 +43,16 @@ const AdminManageProjects = lazy(() => import('./pages/admin/ManageProjects'))
 const ReportsLogs = lazy(() => import('./pages/admin/ReportsLogs'))
 const DisputeManagement = lazy(() => import('./pages/admin/DisputeManagement'))
 
+const ScrollToTop = () => {
+  const { pathname } = useLocation()
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [pathname])
+  return null
+}
+
 const PageLoader = () => (
   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
     <CircularProgress sx={{ color: '#FFC107' }} />
@@ -68,15 +78,15 @@ const AppContent = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const pageVariants = {
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 },
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
   }
 
   const pageTransition = {
     type: 'tween',
-    ease: 'anticipate',
-    duration: 0.4,
+    ease: 'easeInOut',
+    duration: 0.25,
   }
 
   return (
@@ -88,6 +98,7 @@ const AppContent = () => {
       maxWidth: '100vw',
       position: 'relative',
     }}>
+      <ScrollToTop />
       <AppBar onMenuClick={() => setDrawerOpen(!drawerOpen)} drawerOpen={drawerOpen} />
       {isAuthenticated && (
         <Sidebar open={drawerOpen} onClose={() => setDrawerOpen(false)} />
@@ -257,7 +268,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/student/project/:id"
+            path="/student/project/:slugId"
             element={
               <ProtectedRoute allowedRoles={['student', 'startup', 'admin']}>
                 <motion.div
@@ -322,6 +333,22 @@ const AppContent = () => {
           />
           <Route
             path="/student/upload-project"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <motion.div
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={pageVariants}
+                  transition={pageTransition}
+                >
+                  <UploadProject />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/edit-project/:id"
             element={
               <ProtectedRoute allowedRoles={['student']}>
                 <motion.div

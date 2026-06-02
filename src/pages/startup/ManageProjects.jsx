@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom'
 import EmptyState from '../../components/shared/EmptyState'
 import Snackbar from '../../components/shared/Snackbar'
 import api from '../../utils/api'
+import { createSlug } from '../../utils/slugify'
 import { useAuth } from '../../context/AuthContext'
 import { ProjectCardSkeleton } from '../../components/shared/SkeletonLoader'
 
@@ -303,7 +304,7 @@ const ManageProjects = () => {
                                 '&:hover': { background: 'rgba(255, 193, 7, 0.08)' },
                                 borderRadius: '6px'
                               }}
-                              onClick={() => navigate(`/startup/project/${project._id}`)}
+                              onClick={() => navigate(`/student/project/${createSlug(project.title, project._id)}`)}
                             >
                               Explore
                             </Button>

@@ -216,6 +216,25 @@ const MyCollaborations = () => {
     }
   }
 
+  const handleCancelRequest = async (collabId) => {
+    if (!window.confirm("Are you sure you want to cancel this collaboration request?")) return;
+    setLoadingAction(true)
+    try {
+      await api.put(`/collaborations/${collabId}`, { status: 'cancelled' })
+      setCollaborations(prev => prev.filter(c => c._id !== collabId))
+    } catch (err) {
+      console.error("Failed to cancel collaboration request", err)
+      window.alert(err.response?.data?.message || "Failed to cancel request.")
+    } finally {
+      setLoadingAction(false)
+    }
+  }
+
+  const handleDeleteCollaborationCard = (collabId) => {
+    if (!window.confirm("Are you sure you want to remove this collaboration from your list?")) return;
+    setCollaborations(prev => prev.filter(c => c._id !== collabId))
+  }
+
   useEffect(() => {
     let isMounted = true;
     const loadCollaborations = async () => {
@@ -364,6 +383,29 @@ const MyCollaborations = () => {
                             <span className="vx-badge" style={{ backgroundColor: statusSty.bg, color: statusSty.color }}>
                               {collab.status}
                             </span>
+                            {collab.status === 'pending' && (
+                              <Button 
+                                size="small" 
+                                variant="outlined"
+                                color="error"
+                                disabled={loadingAction}
+                                onClick={() => handleCancelRequest(collab._id)}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', px: 2, fontSize: '0.8rem' }}
+                              >
+                                Cancel Request
+                              </Button>
+                            )}
+                            {['cancelled', 'rejected'].includes(collab.status) && (
+                              <Button 
+                                size="small" 
+                                variant="outlined"
+                                color="error"
+                                onClick={() => handleDeleteCollaborationCard(collab._id)}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '8px', px: 2, fontSize: '0.8rem' }}
+                              >
+                                Delete
+                              </Button>
+                            )}
                             {collab.status === 'completed' && myLetter && (
                               <Button 
                                 size="small" 

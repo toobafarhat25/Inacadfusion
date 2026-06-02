@@ -1,8 +1,8 @@
 fastapi
-uvicorn
-sentence-transformers
+uvicorn[standard]
+optimum[onnxruntime]
+transformers
+numpy
 pymongo
-pandas
-torch
 python-multipart
 pydantic

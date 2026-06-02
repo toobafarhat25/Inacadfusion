@@ -1,130 +1,180 @@
 import os
-import torch
-import pandas as pd
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-from pymongo import MongoClient
-from sentence_transformers import SentenceTransformer, util
 import re
+import json
+import numpy as np
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional
+from pymongo import MongoClient
+
+# ─── Use ONNX Runtime instead of PyTorch (~80MB vs ~700MB) ──────────────────
+from optimum.onnxruntime import ORTModelForFeatureExtraction
+from transformers import AutoTokenizer
 
 # ─── CONFIGURATION ──────────────────────────────────────────────────────────
-# Force CPU since user has no GPU
-torch.set_num_threads(4) 
-DEVICE = "cpu"
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb://127.0.0.1:27017/inacad-fusion")
-MODEL_NAME = 'all-MiniLM-L6-v2'
+MODEL_NAME = "optimum/all-MiniLM-L6-v2"   # Pre-exported ONNX version (no PyTorch!)
+MAX_SEQ_LEN = 128                           # MiniLM native max; keep it small
 
 app = FastAPI(title="InAcadFusion AI Recommendation Engine")
 
+# Allow CORS from the frontend / Node backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # ─── STATE ──────────────────────────────────────────────────────────────────
-model = None
-project_embeddings = None
-projects_df = None
+tokenizer = None
+ort_model = None
+project_embeddings = None   # numpy array  (N, 384)
+projects_meta = []          # plain Python list of dicts – no pandas needed
 
 # ─── UTILS ──────────────────────────────────────────────────────────────────
-def clean_text(text):
-    if not text: return ""
+def clean_text(text: str) -> str:
+    if not text:
+        return ""
     text = str(text).lower()
-    text = re.sub(r'[^a-z0-9+# ]', '', text)
+    text = re.sub(r"[^a-z0-9+# ]", "", text)
     return " ".join(text.split())
 
+
+def mean_pooling(model_output, attention_mask):
+    """Average token embeddings weighted by attention mask."""
+    token_embeddings = model_output[0]  # shape: (batch, seq, hidden)
+    mask_expanded = attention_mask[:, :, np.newaxis].astype(np.float32)
+    summed = np.sum(token_embeddings * mask_expanded, axis=1)
+    counts = np.clip(mask_expanded.sum(axis=1), a_min=1e-9, a_max=None)
+    return summed / counts
+
+
+def encode_texts(texts: list[str]) -> np.ndarray:
+    """Tokenize and embed a list of texts. Returns (N, 384) float32 array."""
+    encoded = tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=MAX_SEQ_LEN,
+        return_tensors="np",   # numpy – no torch dependency
+    )
+    outputs = ort_model(
+        input_ids=encoded["input_ids"],
+        attention_mask=encoded["attention_mask"],
+    )
+    embeddings = mean_pooling(outputs, encoded["attention_mask"])
+    # L2 normalise for cosine similarity via dot product
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    return embeddings / np.clip(norms, 1e-9, None)
+
+
+def cosine_similarity_matrix(query_vec: np.ndarray, corpus: np.ndarray) -> np.ndarray:
+    """query_vec: (384,) | corpus: (N, 384) → scores: (N,)"""
+    return corpus @ query_vec
+
+
+# ─── DB LOADER ──────────────────────────────────────────────────────────────
 def load_data_from_db():
-    global projects_df, project_embeddings
+    global projects_meta, project_embeddings
     try:
-        client = MongoClient(MONGO_URI)
-        db = client['inacad-fusion']
-        projects_collection = db['projects']
-        
-        # Fetch active projects
-        raw_projects = list(projects_collection.find({"status": "active"}))
-        if not raw_projects:
-            print("No active projects found in DB.")
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        db = client["inacad-fusion"]
+        raw = list(db["projects"].find({"status": "active"}))
+        if not raw:
+            print("No active projects found.")
             return
 
-        df = pd.DataFrame(raw_projects)
-        
-        # Feature Engineering (Same as Colab logic)
-        df['combined_features'] = (
-            "Domain: " + df['domain'].astype(str) + " | " +
-            "Title: " + df['title'].astype(str) + " | " +
-            "Description: " + df['description'].astype(str) + " | " +
-            "Skills: " + df['requiredSkills'].apply(lambda x: " ".join(x) if isinstance(x, list) else str(x))
-        ).apply(clean_text)
+        texts, metas = [], []
+        for p in raw:
+            skills = " ".join(p.get("requiredSkills", []) or [])
+            combined = (
+                f"Domain: {p.get('domain', '')} | "
+                f"Title: {p.get('title', '')} | "
+                f"Description: {p.get('description', '')} | "
+                f"Skills: {skills}"
+            )
+            texts.append(clean_text(combined))
+            metas.append({
+                "id": str(p["_id"]),
+                "title": p.get("title", ""),
+                "domain": p.get("domain", ""),
+                "description": p.get("description", ""),
+                "type": p.get("type", ""),
+            })
 
-        # Generate Embeddings
-        print(f"Embedding {len(df)} projects...")
-        embeddings = model.encode(df['combined_features'].tolist(), convert_to_tensor=True, device=DEVICE)
-        
-        projects_df = df
-        project_embeddings = embeddings
-        print("Embeddings ready.")
+        print(f"Embedding {len(texts)} projects with ONNX Runtime...")
+        project_embeddings = encode_texts(texts)   # (N, 384)
+        projects_meta = metas
+        print("✅ Embeddings ready.")
     except Exception as e:
-        print(f"Error loading data: {e}")
+        print(f"❌ Error loading data: {e}")
 
-def initialize_ai():
-    global model
-    try:
-        print(f"Loading AI Model: {MODEL_NAME}...")
-        model = SentenceTransformer(MODEL_NAME, device=DEVICE)
-        load_data_from_db()
-    except Exception as e:
-        print(f"Error during AI initialization: {e}")
 
 # ─── STARTUP ────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 def startup_event():
+    global tokenizer, ort_model
     import threading
-    threading.Thread(target=initialize_ai, daemon=True).start()
 
-# ─── API ENDPOINTS ──────────────────────────────────────────────────────────
+    def _init():
+        global tokenizer, ort_model
+        print(f"Loading ONNX model: {MODEL_NAME} ...")
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        ort_model = ORTModelForFeatureExtraction.from_pretrained(MODEL_NAME)
+        print("✅ ONNX model loaded.")
+        load_data_from_db()
+
+    threading.Thread(target=_init, daemon=True).start()
+
+
+# ─── SCHEMAS ────────────────────────────────────────────────────────────────
 class QueryRequest(BaseModel):
     query: str
     top_n: Optional[int] = 5
 
+
+# ─── ENDPOINTS ──────────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    return {"status": "online", "projects_indexed": len(projects_df) if projects_df is not None else 0}
+    return {
+        "status": "online",
+        "projects_indexed": len(projects_meta),
+        "model_loaded": ort_model is not None,
+    }
+
 
 @app.post("/recommend")
 async def recommend(request: QueryRequest):
-    if model is None:
-        raise HTTPException(status_code=503, detail="AI Model not initialized.")
-    if project_embeddings is None or projects_df is None or len(projects_df) == 0:
-        return {"matches": []}
+    if ort_model is None:
+        raise HTTPException(status_code=503, detail="AI model still initialising – try again shortly.")
+    if project_embeddings is None or len(projects_meta) == 0:
+        return {"data": []}
 
     try:
-        # Encode student query
-        query_vector = model.encode(clean_text(request.query), convert_to_tensor=True, device=DEVICE)
+        query_vec = encode_texts([clean_text(request.query)])[0]   # (384,)
+        scores = cosine_similarity_matrix(query_vec, project_embeddings)
 
-        # Calculate Cosine Similarity
-        cosine_scores = util.cos_sim(query_vector, project_embeddings)[0]
-
-        # Get Top N results
-        top_n = min(request.top_n, len(projects_df))
-        top_results = torch.topk(cosine_scores, k=top_n)
+        top_n = min(request.top_n, len(projects_meta))
+        top_indices = np.argsort(scores)[::-1][:top_n]
 
         results = []
-        for score, idx in zip(top_results.values, top_results.indices):
-            row = projects_df.iloc[idx.item()]
-            results.append({
-                "id": str(row['_id']),
-                "title": row['title'],
-                "domain": row['domain'],
-                "description": row['description'],
-                "confidence": round(float(score) * 100, 2),
-                "type": row['type']
-            })
+        for idx in top_indices:
+            m = projects_meta[idx]
+            results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
 
-        return {"matches": results}
+        return {"data": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.post("/refresh")
 def refresh():
-    """Manually trigger a data reload (e.g. after a project upload)"""
+    """Manually reload project embeddings (call after a new project upload)."""
     load_data_from_db()
-    return {"status": "success", "projects_indexed": len(projects_df) if projects_df is not None else 0}
+    return {"status": "success", "projects_indexed": len(projects_meta)}
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -122,25 +122,35 @@ const STYLES = `
 `
 
 // ─── CUSTOM SVG DONUT CHART ──────────────────────────────────────────────────
-const DonutChart = () => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px', my: 2 }}>
-    <svg width="130" height="130" viewBox="0 0 140 140">
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#F1F5F9" strokeWidth="14" />
-      {/* Segment 1: Software Engineering (65%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#D97706" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="110.00" strokeLinecap="round" transform="rotate(-90 70 70)" />
-      {/* Segment 2: Computer Science (25%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#FFC107" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="235.62" strokeLinecap="round" transform="rotate(144 70 70)" />
-      {/* Segment 3: Data Science (10%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#FFEDD5" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="282.74" strokeLinecap="round" transform="rotate(234 70 70)" />
-      <circle cx="70" cy="70" r="42" fill="#FFFFFF" />
-      <text x="70" y="66" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: '15px', fill: '#1E293B' }}>100%</text>
-      <text x="70" y="80" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '8px', fill: '#94A3B8' }}>Applicant split</text>
-    </svg>
-  </Box>
-)
+const DonutChart = ({ data }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0) || 1;
+  let currentOffset = 0;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px', my: 2 }}>
+      <svg width="130" height="130" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="50" fill="transparent" stroke="#F1F5F9" strokeWidth="14" />
+        {data.map((item, index) => {
+          const dashArray = 314.16; // 2 * Math.PI * 50
+          const dashOffset = dashArray - (item.value / total) * dashArray;
+          const angle = (currentOffset / total) * 360 - 90;
+          currentOffset += item.value;
+          return (
+            <circle 
+              key={index} cx="70" cy="70" r="50" fill="transparent" 
+              stroke={item.color} strokeWidth="14" 
+              strokeDasharray={dashArray} strokeDashoffset={dashOffset} 
+              strokeLinecap="round" transform={`rotate(${angle} 70 70)`} 
+            />
+          );
+        })}
+        <circle cx="70" cy="70" r="42" fill="#FFFFFF" />
+        <text x="70" y="66" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: '15px', fill: '#1E293B' }}>{total === 1 && data.length === 0 ? '0' : total}</text>
+        <text x="70" y="80" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '8px', fill: '#94A3B8' }}>Active Students</text>
+      </svg>
+    </Box>
+  )
+}
 
 const StartupDashboard = () => {
   const navigate = useNavigate()
@@ -148,6 +158,8 @@ const StartupDashboard = () => {
   const [stats, setStats] = useState({ activeProjects: 0, collaborationRequests: 0, activePartnerships: 0 })
   const [activeCollabsData, setActiveCollabsData] = useState([])
   const [upcomingMilestones, setUpcomingMilestones] = useState([])
+  const [studentSplitData, setStudentSplitData] = useState([])
+  const [synergyData, setSynergyData] = useState([])
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -186,6 +198,40 @@ const StartupDashboard = () => {
         });
         miles.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
         setUpcomingMilestones(miles);
+
+        // Compute student degree split from active collabs
+        const degrees = {};
+        collabRes.data.data.forEach(c => {
+          if (c.studentId?.profileDetails?.degree) {
+            const deg = c.studentId.profileDetails.degree;
+            degrees[deg] = (degrees[deg] || 0) + 1;
+          } else {
+            degrees['Other'] = (degrees['Other'] || 0) + 1;
+          }
+        });
+        
+        const palette = ['#D97706', '#FFC107', '#FFEDD5', '#10B981', '#3B82F6'];
+        const splitChartData = Object.entries(degrees)
+          .map(([label, value], idx) => ({ label, value, color: palette[idx % palette.length] }))
+          .sort((a, b) => b.value - a.value);
+        setStudentSplitData(splitChartData);
+
+        // Compute synergy/category data from active collabs or projects
+        const synergyDomains = {};
+        collabRes.data.data.forEach(c => {
+          if (c.projectId?.domain) {
+            synergyDomains[c.projectId.domain] = (synergyDomains[c.projectId.domain] || 0) + 1;
+          }
+        });
+        const totalCollabs = collabRes.data.data.length || 1; // avoid / 0
+        const synergyChartData = Object.entries(synergyDomains)
+          .map(([name, count], idx) => ({
+            name,
+            percent: Math.round((count / totalCollabs) * 100),
+            color: palette[idx % palette.length]
+          }))
+          .sort((a, b) => b.percent - a.percent).slice(0, 3);
+        setSynergyData(synergyChartData);
       } catch (err) {
         console.error(err)
       } finally {
@@ -387,11 +433,7 @@ const StartupDashboard = () => {
                   </Typography>
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {[
-                      { name: 'Web Applications', percent: 75, color: '#D97706' },
-                      { name: 'Mobile Systems', percent: 45, color: '#FFC107' },
-                      { name: 'Machine Learning', percent: 30, color: '#FFEDD5' }
-                    ].map((cat) => (
+                    {synergyData.length > 0 ? synergyData.map((cat) => (
                       <Box key={cat.name}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                           <Typography sx={{ fontSize: '0.85rem', fontWeight: 750, color: '#334155' }}>{cat.name}</Typography>
@@ -406,7 +448,9 @@ const StartupDashboard = () => {
                           }} 
                         />
                       </Box>
-                    ))}
+                    )) : (
+                      <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>No collaboration synergy data yet.</Typography>
+                    )}
                   </Box>
                 </Box>
               </div>
@@ -425,21 +469,25 @@ const StartupDashboard = () => {
                     Student Applicant Split
                   </Typography>
                 </div>
-                <DonutChart />
-                <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#D97706' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>SE (65%)</Typography>
+                {studentSplitData.length > 0 ? (
+                  <>
+                    <DonutChart data={studentSplitData} />
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.5, mt: 1 }}>
+                      {studentSplitData.map((d, i) => (
+                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} />
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>
+                            {d.label.substring(0, 15)}{d.label.length > 15 ? '...' : ''} ({d.value})
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </>
+                ) : (
+                  <Box sx={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>No collaborations yet.</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#FFC107' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>CS (25%)</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#FFEDD5' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>DS (10%)</Typography>
-                  </Box>
-                </Box>
+                )}
               </div>
             </Grid>
 
@@ -453,22 +501,20 @@ const StartupDashboard = () => {
                 </div>
                 
                 <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>SUN</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>16</Typography>
-                  </div>
-                  <div className="mockup-cal-day active">
-                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>MON</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 850 }}>17</Typography>
-                  </div>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>TUE</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>18</Typography>
-                  </div>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>WED</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>19</Typography>
-                  </div>
+                  {[...Array(4)].map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + i);
+                    return (
+                      <div key={i} className={`mockup-cal-day ${i === 1 ? 'active' : ''}`}>
+                        <Typography sx={{ fontSize: '0.7rem', color: i === 1 ? 'rgba(255,255,255,0.7)' : '#94A3B8', fontWeight: 700 }}>
+                          {d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
+                        </Typography>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: i === 1 ? 850 : 800 }}>
+                          {d.getDate()}
+                        </Typography>
+                      </div>
+                    )
+                  })}
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

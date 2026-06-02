@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { DashboardSkeleton } from '../../components/shared/SkeletonLoader'
 import api from '../../utils/api'
+import { createSlug } from '../../utils/slugify'
 
 // ─── SAMPLE MOCKUP THEMED STYLES ──────────────────────────────────────────────
 const STYLES = `
@@ -122,25 +123,36 @@ const STYLES = `
 `
 
 // ─── CUSTOM SVG DONUT CHART ──────────────────────────────────────────────────
-const DonutChart = () => (
-  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px', my: 2 }}>
-    <svg width="130" height="130" viewBox="0 0 140 140">
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#F1F5F9" strokeWidth="14" />
-      {/* Segment 1: Web Dev (55%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#D97706" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="141.37" strokeLinecap="round" transform="rotate(-90 70 70)" />
-      {/* Segment 2: AI (30%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#FFC107" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="219.91" strokeLinecap="round" transform="rotate(108 70 70)" />
-      {/* Segment 3: Other (15%) */}
-      <circle cx="70" cy="70" r="50" fill="transparent" stroke="#FFEDD5" strokeWidth="14" 
-              strokeDasharray="314.16" strokeDashoffset="267.03" strokeLinecap="round" transform="rotate(216 70 70)" />
-      <circle cx="70" cy="70" r="42" fill="#FFFFFF" />
-      <text x="70" y="66" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: '15px', fill: '#1E293B' }}>100%</text>
-      <text x="70" y="80" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '8px', fill: '#94A3B8' }}>Portfolio Split</text>
-    </svg>
-  </Box>
-)
+const DonutChart = ({ data }) => {
+  // data = [{ label: 'Web', value: 55, color: '#D97706' }, ...]
+  const total = data.reduce((sum, item) => sum + item.value, 0) || 1;
+  let currentOffset = 0;
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px', my: 2 }}>
+      <svg width="130" height="130" viewBox="0 0 140 140">
+        <circle cx="70" cy="70" r="50" fill="transparent" stroke="#F1F5F9" strokeWidth="14" />
+        {data.map((item, index) => {
+          const dashArray = 314.16; // 2 * Math.PI * 50
+          const dashOffset = dashArray - (item.value / total) * dashArray;
+          const angle = (currentOffset / total) * 360 - 90;
+          currentOffset += item.value;
+          return (
+            <circle 
+              key={index} cx="70" cy="70" r="50" fill="transparent" 
+              stroke={item.color} strokeWidth="14" 
+              strokeDasharray={dashArray} strokeDashoffset={dashOffset} 
+              strokeLinecap="round" transform={`rotate(${angle} 70 70)`} 
+            />
+          );
+        })}
+        <circle cx="70" cy="70" r="42" fill="#FFFFFF" />
+        <text x="70" y="66" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: '15px', fill: '#1E293B' }}>{total === 1 && data.length === 0 ? '0' : total}</text>
+        <text x="70" y="80" textAnchor="middle" dominantBaseline="middle" style={{ fontFamily: 'Inter', fontWeight: 600, fontSize: '8px', fill: '#94A3B8' }}>Total Projects</text>
+      </svg>
+    </Box>
+  )
+}
 
 const StudentDashboard = () => {
   const navigate = useNavigate()
@@ -150,6 +162,9 @@ const StudentDashboard = () => {
   const [upcomingMilestones, setUpcomingMilestones] = useState([])
   const [aiRecommendations, setAiRecommendations] = useState([])
   const [fetchingAi, setFetchingAi] = useState(false)
+  
+  const [domainData, setDomainData] = useState([])
+  const [synergyData, setSynergyData] = useState([])
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -190,6 +205,36 @@ const StudentDashboard = () => {
         });
         miles.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
         setUpcomingMilestones(miles);
+
+        // Compute domain distribution from student's projects
+        const domains = {};
+        projRes.data.data.forEach(p => {
+          const d = p.domain || 'Other';
+          domains[d] = (domains[d] || 0) + 1;
+        });
+        
+        const palette = ['#D97706', '#FFC107', '#FFEDD5', '#10B981', '#3B82F6'];
+        const domainChartData = Object.entries(domains)
+          .map(([label, value], idx) => ({ label, value, color: palette[idx % palette.length] }))
+          .sort((a, b) => b.value - a.value);
+        setDomainData(domainChartData);
+
+        // Compute synergy/category data from active collabs or projects
+        const synergyDomains = {};
+        collabRes.data.data.forEach(c => {
+          if (c.projectId?.domain) {
+            synergyDomains[c.projectId.domain] = (synergyDomains[c.projectId.domain] || 0) + 1;
+          }
+        });
+        const totalCollabs = collabRes.data.data.length || 1; // avoid / 0
+        const synergyChartData = Object.entries(synergyDomains)
+          .map(([name, count], idx) => ({
+            name,
+            percent: Math.round((count / totalCollabs) * 100),
+            color: palette[idx % palette.length]
+          }))
+          .sort((a, b) => b.percent - a.percent).slice(0, 3);
+        setSynergyData(synergyChartData);
 
         // AI RECOMMENDATION LOGIC
         const studentProfile = profileRes.data.data;
@@ -408,11 +453,7 @@ const StudentDashboard = () => {
                   </Typography>
 
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-                    {[
-                      { name: 'Web Applications', percent: 85, color: '#D97706' },
-                      { name: 'AI & Data Science', percent: 65, color: '#FFC107' },
-                      { name: 'Mobile Systems', percent: 45, color: '#FFEDD5' }
-                    ].map((cat) => (
+                    {synergyData.length > 0 ? synergyData.map((cat) => (
                       <Box key={cat.name}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                           <Typography sx={{ fontSize: '0.85rem', fontWeight: 750, color: '#334155' }}>{cat.name}</Typography>
@@ -427,7 +468,9 @@ const StudentDashboard = () => {
                           }} 
                         />
                       </Box>
-                    ))}
+                    )) : (
+                      <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>No collaboration synergy data yet.</Typography>
+                    )}
                   </Box>
                 </Box>
               </div>
@@ -446,21 +489,23 @@ const StudentDashboard = () => {
                     Domain Distribution
                   </Typography>
                 </div>
-                <DonutChart />
-                <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#D97706' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>Web (55%)</Typography>
+                {domainData.length > 0 ? (
+                  <>
+                    <DonutChart data={domainData} />
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 1.5, mt: 1 }}>
+                      {domainData.map((d, i) => (
+                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: d.color }} />
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>{d.label} ({d.value})</Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </>
+                ) : (
+                  <Box sx={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>No projects uploaded yet.</Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#FFC107' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>AI (30%)</Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: '#FFEDD5' }} />
-                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>Other (15%)</Typography>
-                  </Box>
-                </Box>
+                )}
               </div>
             </Grid>
 
@@ -474,22 +519,20 @@ const StudentDashboard = () => {
                 </div>
                 
                 <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>SUN</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>16</Typography>
-                  </div>
-                  <div className="mockup-cal-day active">
-                    <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>MON</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 850 }}>17</Typography>
-                  </div>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>TUE</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>18</Typography>
-                  </div>
-                  <div className="mockup-cal-day">
-                    <Typography sx={{ fontSize: '0.7rem', color: '#94A3B8', fontWeight: 700 }}>WED</Typography>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 800 }}>19</Typography>
-                  </div>
+                  {[...Array(4)].map((_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + i);
+                    return (
+                      <div key={i} className={`mockup-cal-day ${i === 1 ? 'active' : ''}`}>
+                        <Typography sx={{ fontSize: '0.7rem', color: i === 1 ? 'rgba(255,255,255,0.7)' : '#94A3B8', fontWeight: 700 }}>
+                          {d.toLocaleDateString(undefined, { weekday: 'short' }).toUpperCase()}
+                        </Typography>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: i === 1 ? 850 : 800 }}>
+                          {d.getDate()}
+                        </Typography>
+                      </div>
+                    )
+                  })}
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -531,14 +574,10 @@ const StudentDashboard = () => {
                   </Box>
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {(aiRecommendations && aiRecommendations.length > 0 ? aiRecommendations : [
-                      { id: 'mock1', title: 'Agri Website & Analytics Portal', domain: 'Agriculture', confidence: 96 },
-                      { id: 'mock2', title: 'EdTech Peer Mentoring Platform', domain: 'Education', confidence: 88 },
-                      { id: 'mock3', title: 'AI Code Review Assistant', domain: 'Software Engineering', confidence: 82 }
-                    ]).slice(0, 3).map((proj) => (
+                    {aiRecommendations && aiRecommendations.length > 0 ? aiRecommendations.slice(0, 3).map((proj) => (
                       <Box
                         key={proj.id}
-                        onClick={() => proj.id.startsWith('mock') ? navigate('/student/browse-projects') : navigate(`/student/project/${proj.id}`)}
+                        onClick={() => navigate(`/student/project/${createSlug(proj.title, proj.id)}`)}
                         sx={{
                           p: 1.5, border: '1px solid #E2E8F0', borderRadius: '8px', cursor: 'pointer',
                           '&:hover': { borderColor: '#D97706', background: '#FFFDF9' },
@@ -553,8 +592,15 @@ const StudentDashboard = () => {
                         </Box>
                         <Typography sx={{ fontSize: '0.8rem', fontWeight: 850, color: '#10B981' }}>{proj.confidence}%</Typography>
                       </Box>
-                    ))}
+                    )) : (
+                      <Box sx={{ py: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                        <Typography sx={{ fontSize: '0.85rem', color: '#64748B' }}>
+                          No AI matches found. Update your profile to get recommendations.
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
+
                 )}
               </div>
             </Grid>

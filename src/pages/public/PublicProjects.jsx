@@ -10,6 +10,7 @@ import {
 import CinematicFooter from '../../components/ui/MotionFooter'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../utils/api'
+import { createSlug } from '../../utils/slugify'
 
 const STYLES = `
 .pp-root {
@@ -227,7 +228,7 @@ function ProjectCard({ project, onView, index }) {
       transition={{ duration: 0.45, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
       style={{ height: '100%', width: '100%' }}
     >
-      <div className="pp-card" onClick={() => onView(project._id)}>
+      <div className="pp-card" onClick={() => onView(project)}>
         <div className="pp-card-top" />
         <div className="pp-card-body">
           {/* Header chips */}
@@ -324,10 +325,10 @@ const PublicProjects = () => {
     return matchSearch && matchDomain && matchUploader
   })
 
-  const handleView = (id) => {
-    if (!isAuthenticated) return navigate('/login', { state: { from: '/projects', projectId: id } })
+  const handleView = (project) => {
+    if (!isAuthenticated) return navigate('/login', { state: { from: '/projects', projectId: project._id } })
     const u = JSON.parse(localStorage.getItem('user') || '{}')
-    navigate(`/${u.role === 'student' ? 'student' : 'student'}/project/${id}`)
+    navigate(`/${u.role === 'student' ? 'student' : 'student'}/project/${createSlug(project.title, project._id)}`)
   }
 
   return (

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Box,
@@ -145,6 +146,10 @@ const STYLES = `
 `
 
 const UploadProject = () => {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const isEdit = !!id
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -152,9 +157,36 @@ const UploadProject = () => {
     technologies: [],
     files: [],
   })
+  const [existingFiles, setExistingFiles] = useState([])
   const [newTech, setNewTech] = useState('')
   const [loading, setLoading] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' })
+
+  useEffect(() => {
+    if (isEdit) {
+      const fetchProjectDetails = async () => {
+        setLoading(true)
+        try {
+          const res = await api.get(`/projects/${id}`)
+          const proj = res.data.data
+          setFormData({
+            title: proj.title || '',
+            description: proj.description || '',
+            domain: proj.domain || '',
+            technologies: proj.technologies || [],
+            files: [],
+          })
+          setExistingFiles(proj.files || [])
+        } catch (err) {
+          console.error(err)
+          setSnackbar({ open: true, message: 'Failed to load project details.', severity: 'error' })
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchProjectDetails()
+    }
+  }, [id, isEdit])
 
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value })
@@ -190,15 +222,25 @@ const UploadProject = () => {
       data.append('domain', formData.domain)
       formData.technologies.forEach(t => data.append('technologies[]', t))
       formData.files.forEach(f => data.append('files', f))
+      if (isEdit) {
+        existingFiles.forEach(f => data.append('existingFiles', f))
+      }
 
-      await api.post('/projects', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      
-      setSnackbar({ open: true, message: 'Project uploaded successfully!', severity: 'success' })
-      setFormData({ title: '', description: '', domain: '', technologies: [], files: [] })
+      if (isEdit) {
+        await api.put(`/projects/${id}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        setSnackbar({ open: true, message: 'Project updated successfully!', severity: 'success' })
+        setTimeout(() => navigate('/student/manage-projects'), 1500)
+      } else {
+        await api.post('/projects', data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        setSnackbar({ open: true, message: 'Project uploaded successfully!', severity: 'success' })
+        setFormData({ title: '', description: '', domain: '', technologies: [], files: [] })
+      }
     } catch (error) {
-      setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to upload project.', severity: 'error' })
+      setSnackbar({ open: true, message: error.response?.data?.message || `Failed to ${isEdit ? 'update' : 'upload'} project.`, severity: 'error' })
     } finally {
       setLoading(false)
     }
@@ -216,13 +258,16 @@ const UploadProject = () => {
           >
             <Box sx={{ mb: 5, textAlign: 'center' }}>
               <Typography sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111827', letterSpacing: '-0.04em', mb: 1.5, lineHeight: 1.1 }}>
-                Submit a{' '}
+                {isEdit ? 'Update ' : 'Submit a '}
                 <Box component="span" sx={{ background: 'linear-gradient(135deg, #FFC107, #FF8F00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   Project
                 </Box>
               </Typography>
               <Typography sx={{ color: '#6B7280', fontWeight: 500, fontSize: '1.1rem', maxWidth: '500px', mx: 'auto' }}>
-                Showcase your best work and start matching with premium startups in the network.
+                {isEdit 
+                  ? "Refine your FYP proposal details, tech stack, and files to ensure accuracy." 
+                  : "Showcase your best work and start matching with premium startups in the network."
+                }
               </Typography>
             </Box>
 
@@ -321,6 +366,29 @@ const UploadProject = () => {
                     </div>
                   </label>
 
+                  {/* Existing Files for Edit Mode */}
+                  {isEdit && existingFiles.length > 0 && (
+                    <Box sx={{ mt: 3, mb: 2 }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#4B5563', mb: 1 }}>Existing Files</Typography>
+                      {existingFiles.map((fileUrl, index) => {
+                        const fileName = fileUrl.split('/').pop().replace(/^\d+-/, ''); // Remove timestamp prefix if any
+                        return (
+                          <motion.div key={`existing-${index}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+                            <div className="vx-file-item" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <CheckCircle sx={{ color: '#FFC107', fontSize: 20 }} />
+                                <Typography sx={{ fontWeight: 600, fontSize: '0.9rem', color: '#111827' }}>{fileName}</Typography>
+                              </Box>
+                              <IconButton onClick={() => setExistingFiles(existingFiles.filter(f => f !== fileUrl))} size="small" sx={{ color: '#EF4444', background: 'rgba(239,68,68,0.1)', '&:hover': { background: 'rgba(239,68,68,0.2)' } }}>
+                                <Delete sx={{ fontSize: 18 }} />
+                              </IconButton>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </Box>
+                  )}
+
                   <Box sx={{ mt: 3 }}>
                     {formData.files.map((file, index) => (
                       <motion.div key={index} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
@@ -337,13 +405,13 @@ const UploadProject = () => {
                     ))}
                   </Box>
                 </Box>
-
+ 
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                   <Button
                     type="submit" disabled={loading}
                     className="vx-btn-primary"
                   >
-                    {loading ? 'Processing...' : 'Submit Project Formulation'}
+                    {loading ? 'Processing...' : (isEdit ? 'Save Changes' : 'Submit Project Formulation')}
                   </Button>
                 </Box>
               </Box>

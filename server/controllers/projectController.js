@@ -97,9 +97,19 @@ exports.updateProject = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Not authorized to update this project' });
     }
 
-    if (req.files && req.files.length > 0) {
-      req.body.files = [...(project.files || []), ...req.files.map(f => `/uploads/${f.filename}`)];
+    let updatedFiles = [];
+    if (req.body.existingFiles) {
+      updatedFiles = Array.isArray(req.body.existingFiles)
+        ? req.body.existingFiles
+        : [req.body.existingFiles];
+    } else if (req.body.existingFiles === undefined) {
+      updatedFiles = project.files || [];
     }
+
+    if (req.files && req.files.length > 0) {
+      updatedFiles = [...updatedFiles, ...req.files.map(f => `/uploads/${f.filename}`)];
+    }
+    req.body.files = updatedFiles;
 
     project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json({ success: true, data: project });
