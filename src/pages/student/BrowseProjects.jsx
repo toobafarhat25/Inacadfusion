@@ -356,6 +356,7 @@ const BrowseProjects = () => {
   const [isAiMode, setIsAiMode] = useState(false)
   const [domainFilter, setDomainFilter] = useState('All')
   const [roleFilter, setRoleFilter] = useState('All') // 'All', 'startup', 'student'
+  const [aiWaking, setAiWaking] = useState(false)  // true while AI cold-starts
   
   const canvasRef = useRef(null)
 
@@ -536,9 +537,14 @@ const BrowseProjects = () => {
     setLoading(true)
     try {
       if (isAiMode && (search || isManual)) {
-        const res = await api.post('/ai/recommend', { query: search, top_n: 9 })
+        setAiWaking(true)
+        // Server now handles wake-up polling internally (up to 55s)
+        // so we just need a long axios timeout here
+        const res = await api.post('/ai/recommend', { query: search, top_n: 9 }, { timeout: 70000 })
+        setAiWaking(false)
         setProjects(res.data.data)
       } else {
+        setAiWaking(false)
         const params = {}
         if (search) params.search = search
         if (domainFilter !== 'All') params.domain = domainFilter
@@ -553,9 +559,14 @@ const BrowseProjects = () => {
       }
     } catch (err) {
       console.error("Fetch error:", err)
+      setAiWaking(false)
       if (isAiMode) {
-        alert("AI Service is sleeping. Starting Standard search...")
+        // Don't alert — just fall back silently to standard search
         setIsAiMode(false)
+        const params = {}
+        if (search) params.search = search
+        const res = await api.get('/projects', { params }).catch(() => ({ data: { data: [] } }))
+        setProjects(res.data.data)
       }
     } finally {
       setLoading(false)
@@ -749,6 +760,29 @@ const BrowseProjects = () => {
 
           {/* ══════ PROJECTS SECTION ══════ */}
           <Box className="vx-projects-section">
+            {/* AI Warm-Up Banner */}
+            {aiWaking && (
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 2,
+                background: 'rgba(255, 193, 7, 0.08)',
+                border: '1px solid rgba(255, 193, 7, 0.3)',
+                borderRadius: '12px', px: 3, py: 2, mb: 3,
+                backdropFilter: 'blur(8px)'
+              }}>
+                <Box sx={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#FFC107',
+                  animation: 'pulse 1.4s ease-in-out infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                    '50%': { opacity: 0.4, transform: 'scale(0.6)' }
+                  }
+                }} />
+                <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111' }}>
+                  🧠 AI engine is waking up on Render's free tier — this takes ~30 seconds on first use. Please wait…
+                </Typography>
+              </Box>
+            )}
             {loading ? (
               <Grid container spacing={4}>
                 {[1, 2, 3, 4, 5, 6].map((i) => (
