@@ -149,6 +149,9 @@ const startupMenu = [
     { text: 'Dashboard',              icon: <Dashboard />,   path: '/startup/dashboard' },
     { text: 'Profile',                icon: <Person />,      path: '/startup/profile' },
   ]},
+  { section: 'Discovery', items: [
+    { text: 'Discover Students',      icon: <Person />,      path: '/startup/discover-students' },
+  ]},
   { section: 'Projects', items: [
     { text: 'Post New Project',       icon: <Add />,         path: '/startup/post-project' },
     { text: 'Manage Projects',        icon: <Work />,        path: '/startup/manage-projects' },

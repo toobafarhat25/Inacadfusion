@@ -32,6 +32,8 @@ tokenizer        = None   # HuggingFace fast tokenizer (Rust, <5 MB)
 ort_session      = None   # ONNX Runtime session (~35 MB)
 project_embeddings = None # numpy (N, 384)
 projects_meta    = []     # plain Python list – no pandas
+student_embeddings = None # numpy (M, 384)
+students_meta    = []     # plain Python list
 
 # ─── UTILS ──────────────────────────────────────────────────────────────────
 def clean_text(text: str) -> str:
@@ -68,36 +70,61 @@ def encode_texts(texts: list) -> np.ndarray:
 
 # ─── DB LOADER ──────────────────────────────────────────────────────────────
 def load_data_from_db():
-    global projects_meta, project_embeddings
+    global projects_meta, project_embeddings, students_meta, student_embeddings
     try:
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        raw = list(client["inacad-fusion"]["projects"].find({"status": "active"}))
-        if not raw:
-            print("No active projects found.")
-            return
-
-        texts, metas = [], []
-        for p in raw:
-            skills = " ".join(p.get("requiredSkills", []) or [])
-            combined = (
-                f"Domain: {p.get('domain', '')} | "
-                f"Title: {p.get('title', '')} | "
-                f"Description: {p.get('description', '')} | "
-                f"Skills: {skills}"
-            )
-            texts.append(clean_text(combined))
-            metas.append({
-                "id":          str(p["_id"]),
-                "title":       p.get("title", ""),
-                "domain":      p.get("domain", ""),
-                "description": p.get("description", ""),
-                "type":        p.get("type", ""),
-            })
-
-        print(f"Embedding {len(texts)} projects with ONNX Runtime...")
-        project_embeddings = encode_texts(texts)
-        projects_meta = metas
-        print("✅ Embeddings ready.")
+        
+        # 1. Load Projects
+        raw_projects = list(client["inacad-fusion"]["projects"].find({"status": "active"}))
+        if raw_projects:
+            texts, metas = [], []
+            for p in raw_projects:
+                skills = " ".join(p.get("requiredSkills", []) or [])
+                combined = (
+                    f"Domain: {p.get('domain', '')} | "
+                    f"Title: {p.get('title', '')} | "
+                    f"Description: {p.get('description', '')} | "
+                    f"Skills: {skills}"
+                )
+                texts.append(clean_text(combined))
+                metas.append({
+                    "id":          str(p["_id"]),
+                    "title":       p.get("title", ""),
+                    "domain":      p.get("domain", ""),
+                    "description": p.get("description", ""),
+                    "type":        p.get("type", ""),
+                })
+            print(f"Embedding {len(texts)} projects with ONNX Runtime...")
+            project_embeddings = encode_texts(texts)
+            projects_meta = metas
+            print("✅ Project embeddings ready.")
+        
+        # 2. Load Students
+        raw_users = list(client["inacad-fusion"]["users"].find({"role": "student"}))
+        if raw_users:
+            s_texts, s_metas = [], []
+            for s in raw_users:
+                pd = s.get("profileDetails", {})
+                skills = " ".join(pd.get("skills", []) or [])
+                combined = (
+                    f"Name: {s.get('name', '')} | "
+                    f"Background: {pd.get('academicBackground', '')} | "
+                    f"Domain: {pd.get('industryDomain', '')} | "
+                    f"Description: {pd.get('description', '')} | "
+                    f"Skills: {skills}"
+                )
+                s_texts.append(clean_text(combined))
+                s_metas.append({
+                    "_id": str(s["_id"]),
+                    "name": s.get("name", ""),
+                    "email": s.get("email", ""),
+                    "profileDetails": pd
+                })
+            print(f"Embedding {len(s_texts)} students with ONNX Runtime...")
+            student_embeddings = encode_texts(s_texts)
+            students_meta = s_metas
+            print("✅ Student embeddings ready.")
+            
     except Exception as e:
         print(f"❌ Error loading data: {e}")
 
@@ -169,6 +196,30 @@ async def recommend(request: QueryRequest):
         results = []
         for idx in top_idx:
             m = projects_meta[idx]
+            results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
+
+        return {"data": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/recommend_students")
+async def recommend_students(request: QueryRequest):
+    if ort_session is None:
+        raise HTTPException(status_code=503, detail="AI model still initialising – retry shortly.")
+    if student_embeddings is None or len(students_meta) == 0:
+        return {"data": []}
+
+    try:
+        query_vec = encode_texts([clean_text(request.query)])[0]        # (384,)
+        scores    = student_embeddings @ query_vec                       # (M,) cosine sim
+
+        top_n   = min(request.top_n, len(students_meta))
+        top_idx = np.argsort(scores)[::-1][:top_n]
+
+        results = []
+        for idx in top_idx:
+            m = students_meta[idx]
             results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
 
         return {"data": results}

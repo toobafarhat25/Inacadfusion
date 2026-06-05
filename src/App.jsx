@@ -35,6 +35,7 @@ const PostProject = lazy(() => import('./pages/startup/PostProject'))
 const StartupManageProjects = lazy(() => import('./pages/startup/ManageProjects'))
 const ManageCollaborations = lazy(() => import('./pages/startup/ManageCollaborations'))
 const ExperienceLetter = lazy(() => import('./pages/startup/ExperienceLetter'))
+const DiscoverStudents = lazy(() => import('./pages/startup/DiscoverStudents'))
 
 // Admin Pages
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
@@ -441,6 +442,22 @@ const AppContent = () => {
                   transition={pageTransition}
                 >
                   <PostProject />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/startup/discover-students"
+            element={
+              <ProtectedRoute allowedRoles={['startup']}>
+                <motion.div
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={pageVariants}
+                  transition={pageTransition}
+                >
+                  <DiscoverStudents />
                 </motion.div>
               </ProtectedRoute>
             }

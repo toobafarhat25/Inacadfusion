@@ -30,3 +30,16 @@ exports.updateProfile = async (req, res) => {
     res.status(400).json({ success: false, message: err.message });
   }
 };
+
+// @desc    Get all students
+// @route   GET /api/profile/students
+// @access  Private (Startup)
+exports.getAllStudents = async (req, res) => {
+  const User = require('../models/User');
+  try {
+    const students = await User.find({ role: 'student' }).select('-password');
+    res.status(200).json({ success: true, data: students });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+};
