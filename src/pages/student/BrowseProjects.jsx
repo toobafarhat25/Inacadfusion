@@ -788,29 +788,6 @@ const BrowseProjects = () => {
 
           {/* ══════ PROJECTS SECTION ══════ */}
           <Box className="vx-projects-section">
-            {/* AI Warm-Up Banner */}
-            {aiWaking && (
-              <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 2,
-                background: 'rgba(255, 193, 7, 0.08)',
-                border: '1px solid rgba(255, 193, 7, 0.3)',
-                borderRadius: '12px', px: 3, py: 2, mb: 3,
-                backdropFilter: 'blur(8px)'
-              }}>
-                <Box sx={{
-                  width: 10, height: 10, borderRadius: '50%',
-                  background: '#FFC107',
-                  animation: 'pulse 1.4s ease-in-out infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
-                    '50%': { opacity: 0.4, transform: 'scale(0.6)' }
-                  }
-                }} />
-                <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111' }}>
-                  🧠 AI engine is waking up on Render's free tier — this takes ~30 seconds on first use. Please wait…
-                </Typography>
-              </Box>
-            )}
             {loading ? (
               <Grid container spacing={4}>
                 {[1, 2, 3, 4, 5, 6].map((i) => (
