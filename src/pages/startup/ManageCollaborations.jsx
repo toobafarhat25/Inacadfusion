@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Box,
@@ -42,34 +42,105 @@ import { ProjectCardSkeleton } from '../../components/shared/SkeletonLoader'
 const STYLES = `
 
 .vx-root {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #FFFFFF;
+  font-family: 'Public Sans', 'Inter', system-ui, sans-serif;
+  background: #FFFFFF;
   min-height: 100vh;
-  color: #1A202C;
-  padding-bottom: 40px;
+  color: #111111;
+  position: relative;
+  overflow: hidden;
+  padding-top: 140px;
+  padding-bottom: 100px;
+  /* Grid lines in background */
+  background-size: 80px 80px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
 }
+
+.vx-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── ANIMATED BACKGROUND DECORATIONS ── */
+@keyframes vx-float-blob {
+  0%, 100% { transform: translateY(0px) scale(1); opacity: 0.7; }
+  50% { transform: translateY(-30px) scale(1.05); opacity: 1; }
+}
+@keyframes vx-line-sweep {
+  0% { transform: translateX(-100%) rotate(-30deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(200vw) rotate(-30deg); opacity: 0; }
+}
+
+.vx-bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(60px);
+}
+.vx-bg-blob-1 {
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.06) 0%, transparent 70%);
+  top: -150px; right: -200px;
+  animation: vx-float-blob 9s ease-in-out infinite;
+}
+.vx-bg-blob-2 {
+  width: 550px; height: 550px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.08) 0%, transparent 70%);
+  bottom: 100px; left: -180px;
+  animation: vx-float-blob 12s ease-in-out infinite reverse;
+}
+
+.vx-bg-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.vx-bg-line {
+  position: absolute;
+  width: 2px;
+  height: 260px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.15), transparent);
+  animation: vx-line-sweep 8s linear infinite;
+  top: -50px;
+}
+.vx-bg-line:nth-child(1)  { left: 15%; animation-delay: 1.5s; animation-duration: 14s; height: 280px; }
+.vx-bg-line:nth-child(2)  { left: 45%; animation-delay: 6s;   animation-duration: 11s; height: 180px; }
+.vx-bg-line:nth-child(3)  { left: 85%; animation-delay: 2s;   animation-duration: 10s; height: 300px; }
 
 .vx-card {
   background: #FFFFFF;
-  border-radius: 12px;
-  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
   overflow: hidden;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
 }
 .vx-card:hover {
-  border-color: #CBD5E1;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px 0 rgba(0, 0, 0, 0.08);
 }
 
 .vx-card-header {
-  padding: 20px 24px;
+  padding: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #F1F5F9;
-  background: #FAFAFA;
+  background: #FFFFFF;
 }
 
 .vx-card-body {
@@ -77,28 +148,27 @@ const STYLES = `
 }
 
 .vx-icon-box {
-  width: 44px; height: 44px;
-  border-radius: 10px;
+  width: 48px; height: 48px;
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  background: #FFFBEB !important;
-  border: 1px solid #FEF3C7;
+  background: rgba(255, 193, 7, 0.1) !important;
 }
 
 .vx-badge {
-  padding: 4px 12px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
   font-weight: 700;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .vx-progress-wrap {
-  background: #F8FAFC;
-  padding: 16px;
-  border-radius: 8px;
-  margin: 16px 0;
+  background: #FAFAFA;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
   border: 1px solid #F1F5F9;
 }
 
@@ -106,48 +176,50 @@ const STYLES = `
   display: flex;
   align-items: flex-start;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #FFFFFF;
   border: 1px solid #F1F5F9;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   transition: all 0.2s ease;
 }
 .vx-milestone-item:hover {
   background: #FAFAFA;
   border-color: #E2E8F0;
+  transform: translateX(4px);
 }
 
 .vx-btn-mustard {
-  background: #D97706 !important;
-  color: #FFFFFF !important;
-  font-weight: 600 !important;
-  border-radius: 8px !important;
-  padding: 8px 20px !important;
+  background: #FFC107 !important;
+  color: #000000 !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 8px 24px !important;
   text-transform: none !important;
   font-family: 'Inter', sans-serif !important;
   transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(255,193,7, 0.3) !important;
 }
 .vx-btn-mustard:hover {
-  background: #B45309 !important;
-  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255,193,7, 0.4) !important;
 }
 
 .vx-dialog-clean {
   background: #FFFFFF !important;
-  color: #1A202C !important;
-  border-radius: 16px !important;
+  color: #111111 !important;
+  border-radius: 20px !important;
 }
 
 .vx-input-clean .MuiOutlinedInput-root {
   background: #FFFFFF;
-  border-radius: 8px;
-  color: #1A202C;
+  border-radius: 12px;
+  color: #111111;
 }
 .vx-input-clean .MuiOutlinedInput-notchedOutline {
   border-color: #E2E8F0;
 }
 .vx-input-clean .Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #D97706 !important;
+  border-color: #FFC107 !important;
 }
 .vx-input-clean .MuiInputLabel-root {
   color: #64748B;
@@ -157,13 +229,13 @@ const STYLES = `
 input[type="date"] {
   position: relative;
   background: transparent;
-  color: #1A202C;
+  color: #111111;
   font-family: "Inter", sans-serif;
   font-weight: 600;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23D97706' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23FFC107' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E") no-repeat;
   background-size: contain;
   width: 20px;
   height: 20px;
@@ -197,6 +269,168 @@ const ManageCollaborations = () => {
   // Completion & Experience Letter State
   const [completionDialog, setCompletionDialog] = useState(null) // collaboration object
   const [completionForm, setCompletionForm] = useState({ performanceRating: 5, remarks: '' })
+
+  const canvasRef = useRef(null)
+
+  // ─── INTERACTIVE PARTICLES HOOK ───
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let animationFrameId
+    
+    let width = canvas.width = window.innerWidth
+    let height = canvas.height = window.innerHeight
+    
+    const handleResize = () => {
+      width = canvas.width = window.innerWidth
+      height = canvas.height = window.innerHeight
+    }
+    window.addEventListener('resize', handleResize)
+    
+    const mouse = { x: null, y: null, active: false }
+    const handleMouseMove = (e) => {
+      mouse.x = e.pageX
+      mouse.y = e.pageY
+      mouse.active = true
+    }
+    const handleMouseLeave = () => {
+      mouse.active = false
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseleave', handleMouseLeave)
+    
+    const particleCount = 100
+    const particles = []
+    
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: Math.random() * 2 + 1,
+      })
+    }
+    
+    let scrollY = window.scrollY
+    const handleScroll = () => {
+      scrollY = window.scrollY
+    }
+    window.addEventListener('scroll', handleScroll)
+    
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height)
+      
+      const scrollMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+      const scrollFactor = scrollY / scrollMax
+      
+      particles.forEach((p, idx) => {
+        p.x += p.vx
+        p.y += p.vy
+        
+        if (p.x < 0 || p.x > width) p.vx *= -1
+        if (p.y < 0 || p.y > height) p.vy *= -1
+        
+        if (mouse.active && mouse.x !== null && mouse.y !== null) {
+          const dx = mouse.x - p.x
+          const dy = mouse.y - p.y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          
+          if (dist < 400) {
+            const force = (400 - dist) * 0.0018
+            p.vx += (dx / dist) * force
+            p.vy += (dy / dist) * force
+            
+            if (dist < 40) {
+              p.vx *= 0.85
+              p.vy *= 0.85
+            } else {
+              p.vx *= 0.94
+              p.vy *= 0.94
+            }
+          }
+        }
+        
+        if (scrollFactor > 0.1) {
+          particles.forEach((other, oIdx) => {
+            if (idx === oIdx) return
+            const dx = other.x - p.x
+            const dy = other.y - p.y
+            const dist = Math.sqrt(dx*dx + dy*dy)
+            
+            if (dist < 200 && dist > 20) {
+              const force = (200 - dist) * 0.00002 * scrollFactor
+              p.vx += (dx / dist) * force
+              p.vy += (dy / dist) * force
+              
+              const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy)
+              if (speed > 1.5) {
+                p.vx = (p.vx / speed) * 1.5
+                p.vy = (p.vy / speed) * 1.5
+              }
+            }
+          })
+        }
+        
+        const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy)
+        const maxSpeed = mouse.active ? 4.5 : 1.5
+        if (speed > maxSpeed) {
+          p.vx = (p.vx / speed) * maxSpeed
+          p.vy = (p.vy / speed) * maxSpeed
+        }
+        
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.fillStyle = mouse.active && Math.sqrt((mouse.x - p.x)**2 + (mouse.y - p.y)**2) < 250
+          ? 'rgba(255, 193, 7, 0.8)'
+          : (scrollFactor > 0.3 ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.12)')
+        ctx.fill()
+      })
+      
+      const lineMaxDist = 100 + scrollFactor * 100
+      for (let i = 0; i < particleCount; i++) {
+        for (let j = i + 1; j < particleCount; j++) {
+          const p1 = particles[i]
+          const p2 = particles[j]
+          const dx = p1.x - p2.x
+          const dy = p1.y - p2.y
+          const dist = Math.sqrt(dx*dx + dy*dy)
+          
+          if (dist < lineMaxDist) {
+            ctx.beginPath()
+            ctx.moveTo(p1.x, p1.y)
+            ctx.lineTo(p2.x, p2.y)
+            
+            const isNearMouse = mouse.active && 
+              Math.sqrt((mouse.x - p1.x)**2 + (mouse.y - p1.y)**2) < 200 &&
+              Math.sqrt((mouse.x - p2.x)**2 + (mouse.y - p2.y)**2) < 200
+            
+            const alpha = (1 - dist / lineMaxDist) * 0.3
+            ctx.strokeStyle = isNearMouse
+              ? `rgba(255, 193, 7, ${alpha * 2.5})`
+              : `rgba(0, 0, 0, ${alpha * 1.2})`
+            ctx.lineWidth = isNearMouse 
+              ? 1.2 + (scrollFactor * 0.5)
+              : 0.8 + (scrollFactor * 0.5)
+            ctx.stroke()
+          }
+        }
+      }
+      
+      animationFrameId = requestAnimationFrame(draw)
+    }
+    
+    draw()
+    
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseleave', handleMouseLeave)
+      cancelAnimationFrame(animationFrameId)
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true;
@@ -351,8 +585,20 @@ const ManageCollaborations = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <Box className="vx-root" sx={{ pt: 12, px: { xs: 2, md: 3 }, pb: 8 }}>
-        <Container maxWidth="lg">
+      <Box className="vx-root">
+        {/* Background Effects */}
+        <div className="vx-bg-blob vx-bg-blob-1" />
+        <div className="vx-bg-blob vx-bg-blob-2" />
+        <div className="vx-bg-lines">
+          <div className="vx-bg-line" />
+          <div className="vx-bg-line" />
+          <div className="vx-bg-line" />
+        </div>
+        
+        {/* Canvas for Particles */}
+        <canvas ref={canvasRef} className="vx-canvas" />
+
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
