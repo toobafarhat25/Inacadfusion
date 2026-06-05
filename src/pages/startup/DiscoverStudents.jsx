@@ -776,6 +776,29 @@ const DiscoverStudents = () => {
                 </Box>
               </Box>
             </Box>
+
+            {/* Card 3: Match Engine Type */}
+            <Box className="vx-filter-card-mustard">
+              <Box>
+                <Box className="vx-card-title-row">
+                  <h3 style={{ color: '#0F172A' }}>Filter By Function</h3>
+                </Box>
+                <Box className="vx-filter-buttons-grid">
+                  <Button 
+                    className={`vx-filter-btn-item ${!isAiMode ? 'active' : ''}`}
+                    onClick={() => setIsAiMode(false)}
+                  >
+                    Standard Search
+                  </Button>
+                  <Button 
+                    className={`vx-filter-btn-item ${isAiMode ? 'active' : ''}`}
+                    onClick={() => setIsAiMode(true)}
+                  >
+                    AI Semantic Match
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
           </Box>
 
           {/* ══════ STUDENTS SECTION ══════ */}
