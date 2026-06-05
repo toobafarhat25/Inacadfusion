@@ -195,6 +195,9 @@ async def recommend(request: QueryRequest):
 
         results = []
         for idx in top_idx:
+            # Enforce a minimum similarity threshold (e.g. 20%) to avoid vague matches
+            if scores[idx] < 0.20:
+                continue
             m = projects_meta[idx]
             results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
 
@@ -219,6 +222,9 @@ async def recommend_students(request: QueryRequest):
 
         results = []
         for idx in top_idx:
+            # Enforce a minimum similarity threshold (e.g. 20%) to avoid vague matches
+            if scores[idx] < 0.20:
+                continue
             m = students_meta[idx]
             results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
 
