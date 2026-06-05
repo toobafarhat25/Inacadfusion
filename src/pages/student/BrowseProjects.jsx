@@ -537,12 +537,48 @@ const BrowseProjects = () => {
     setLoading(true)
     try {
       if (isAiMode && (search || isManual)) {
+        // ── AI RETRY LOOP ──────────────────────────────────────────────────
+        // Render free-tier has a hard 30s request timeout. So instead of one
+        // long request, we make short requests and retry when the server says
+        // the AI is still waking up (503 + { waking: true }).
         setAiWaking(true)
-        // Server now handles wake-up polling internally (up to 55s)
-        // so we just need a long axios timeout here
-        const res = await api.post('/ai/recommend', { query: search, top_n: 9 }, { timeout: 70000 })
+        const MAX_RETRIES = 8        // up to ~72 seconds total
+        const RETRY_DELAY_MS = 9000  // 9s between retries — safe under 30s limit
+
+        let lastError = null
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          try {
+            const res = await api.post('/ai/recommend', { query: search, top_n: 9 }, { timeout: 15000 })
+            // Success
+            setAiWaking(false)
+            setProjects(res.data.data || [])
+            setLoading(false)
+            return
+          } catch (err) {
+            lastError = err
+            const status = err?.response?.status
+            const isWaking = err?.response?.data?.waking === true
+
+            if (status === 503 && isWaking) {
+              // AI is still waking — wait then retry
+              if (attempt < MAX_RETRIES - 1) {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS))
+                continue
+              }
+            }
+            // Non-503 error or exhausted retries — break out
+            break
+          }
+        }
+
+        // All retries failed — fall back silently to standard search
+        console.warn('AI unavailable after retries, falling back to standard search.', lastError?.message)
         setAiWaking(false)
-        setProjects(res.data.data)
+        setIsAiMode(false)
+        const params = {}
+        if (search) params.search = search
+        const fallback = await api.get('/projects', { params }).catch(() => ({ data: { data: [] } }))
+        setProjects(fallback.data.data || [])
       } else {
         setAiWaking(false)
         const params = {}
@@ -558,16 +594,8 @@ const BrowseProjects = () => {
         }
       }
     } catch (err) {
-      console.error("Fetch error:", err)
+      console.error('Fetch error:', err)
       setAiWaking(false)
-      if (isAiMode) {
-        // Don't alert — just fall back silently to standard search
-        setIsAiMode(false)
-        const params = {}
-        if (search) params.search = search
-        const res = await api.get('/projects', { params }).catch(() => ({ data: { data: [] } }))
-        setProjects(res.data.data)
-      }
     } finally {
       setLoading(false)
     }

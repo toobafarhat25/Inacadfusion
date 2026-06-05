@@ -6,33 +6,38 @@ const { protect } = require('../middleware/authMiddleware');
 const AI_WORKER_URL = process.env.AI_WORKER_URL || 'http://127.0.0.1:8000';
 
 // Helper: fetch with a custom timeout
-const fetchWithTimeout = (url, options, timeoutMs = 60000) => {
+const fetchWithTimeout = (url, options, timeoutMs = 10000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal })
     .finally(() => clearTimeout(timer));
 };
 
-// Helper: wake up the AI worker (ping /health), retrying every 3s up to maxWaitMs
-const wakeUpAI = async (maxWaitMs = 55000) => {
-  const start = Date.now();
-  while (Date.now() - start < maxWaitMs) {
-    try {
-      const r = await fetchWithTimeout(`${AI_WORKER_URL}/health`, {}, 5000);
-      if (r.ok) {
-        const body = await r.json();
-        if (body.model_loaded) return true;   // model is ready
-      }
-    } catch (_) { /* still sleeping */ }
-    await new Promise(resolve => setTimeout(resolve, 3000));
+// Helper: check if AI is awake and model is loaded (single check, no loops)
+// Loops are now on the FRONTEND to avoid Render's 30s request timeout.
+const checkAIReady = async () => {
+  try {
+    const r = await fetchWithTimeout(`${AI_WORKER_URL}/health`, {}, 8000);
+    if (!r.ok) return false;
+    const body = await r.json();
+    return body.model_loaded === true;
+  } catch (_) {
+    return false;
   }
-  return false; // timed out waiting
+};
+
+// Helper: ping the AI worker to wake it from sleep (fire and forget style)
+const pingAI = () => {
+  fetchWithTimeout(`${AI_WORKER_URL}/health`, {}, 6000).catch(() => {});
 };
 
 /**
  * @desc    Get AI recommendations based on student query
  * @route   POST /api/ai/recommend
  * @access  Private (Student)
+ *
+ * Strategy: Check if model is ready. If not, return 503 { waking: true }.
+ * The FRONTEND retries every 8 seconds. This prevents Render's 30s timeout from killing us.
  */
 router.post('/recommend', protect, async (req, res) => {
   const { query, top_n } = req.body;
@@ -42,17 +47,18 @@ router.post('/recommend', protect, async (req, res) => {
   }
 
   try {
-    // First ping the health endpoint — this wakes up the Render free-tier service
-    // and waits until the ONNX model is actually loaded before sending the real query
-    const isReady = await wakeUpAI(55000);  // wait up to 55 seconds
+    const isReady = await checkAIReady();
+
     if (!isReady) {
+      // Trigger a wake-up ping in the background, then tell frontend to retry
+      pingAI();
       return res.status(503).json({
-        message: 'AI Service took too long to wake up. Please try again in a moment.',
-        waking: true
+        waking: true,
+        message: 'AI engine is warming up. Please wait a moment and try again.'
       });
     }
 
-    // Now send the actual recommendation request
+    // Model is ready — send the actual recommendation request
     const response = await fetchWithTimeout(
       `${AI_WORKER_URL}/recommend`,
       {
@@ -60,7 +66,7 @@ router.post('/recommend', protect, async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, top_n: top_n || 5 }),
       },
-      15000
+      12000
     );
 
     if (!response.ok) {
@@ -96,11 +102,13 @@ router.post('/recommend-students', protect, async (req, res) => {
   }
 
   try {
-    const isReady = await wakeUpAI(55000);
+    const isReady = await checkAIReady();
+
     if (!isReady) {
+      pingAI();
       return res.status(503).json({
-        message: 'AI Service took too long to wake up. Please try again in a moment.',
-        waking: true
+        waking: true,
+        message: 'AI engine is warming up. Please wait a moment and try again.'
       });
     }
 
@@ -111,7 +119,7 @@ router.post('/recommend-students', protect, async (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, top_n: top_n || 9 }),
       },
-      15000
+      12000
     );
 
     if (!response.ok) {
@@ -135,7 +143,7 @@ router.post('/recommend-students', protect, async (req, res) => {
 });
 
 /**
- * @desc    Health-check proxy for the AI worker (so frontend can poll)
+ * @desc    Health-check proxy for the AI worker
  * @route   GET /api/ai/health
  * @access  Private
  */
