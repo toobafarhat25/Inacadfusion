@@ -3,6 +3,9 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const Project = require('../models/Project');
 
+// Resolve the AI worker base URL from env var (set on Render), fallback to localhost for local dev
+const AI_WORKER_URL = process.env.AI_WORKER_URL || 'http://127.0.0.1:8000';
+
 /**
  * @desc    Get AI recommendations based on student query
  * @route   POST /api/ai/recommend
@@ -17,7 +20,7 @@ router.post('/recommend', protect, async (req, res) => {
 
   try {
     // Calling the Python AI Worker
-    const response = await fetch('http://127.0.0.1:8000/recommend', {
+    const response = await fetch(`${AI_WORKER_URL}/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, top_n: top_n || 5 }),
@@ -29,8 +32,6 @@ router.post('/recommend', protect, async (req, res) => {
 
     const aiData = await response.json();
     
-    // The AI returns project IDs and metadata. 
-    // We can return this directly or hydrate it with more DB data if needed.
     res.status(200).json({
       success: true,
       data: aiData.data || aiData.matches || []
