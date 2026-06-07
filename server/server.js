@@ -30,6 +30,16 @@ io.on('connection', (socket) => {
     socket.leave(collaborationId);
   });
 
+  // Join generic conversation room
+  socket.on('joinChat', (conversationId) => {
+    socket.join(conversationId);
+    console.log(`Socket ${socket.id} joined chat: ${conversationId}`);
+  });
+
+  socket.on('leaveChat', (conversationId) => {
+    socket.leave(conversationId);
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -61,6 +71,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const disputeRoutes = require('./routes/disputeRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
@@ -73,6 +84,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 // Error handler

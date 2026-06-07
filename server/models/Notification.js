@@ -6,11 +6,12 @@ const notificationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   type: {
     type: String,
-    enum: ['collaboration', 'milestone', 'dispute', 'system', 'info', 'success'],
+    enum: ['collaboration', 'milestone', 'dispute', 'system', 'info', 'success', 'message'],
     default: 'system'
   },
   isRead: { type: Boolean, default: false },
-  relatedId: { type: mongoose.Schema.ObjectId }
+  relatedId: { type: mongoose.Schema.ObjectId },
+  link: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Notification', notificationSchema);

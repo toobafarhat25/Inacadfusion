@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+const fs = require('fs');
+
+const code = `import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Box,
@@ -9,16 +11,7 @@ import {
   TextField,
   Chip,
   IconButton,
-  Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
-  CircularProgress
+  Tooltip
 } from '@mui/material'
 import { 
   Search, 
@@ -40,7 +33,7 @@ import { DashboardSkeleton as ProjectCardSkeleton } from '../../components/share
 import EmptyState from '../../components/shared/EmptyState'
 import api from '../../utils/api'
 
-const STYLES = `
+const STYLES = \`
 .vx-root {
   font-family: 'Inter', system-ui, sans-serif;
   background: #FFFFFF;
@@ -362,7 +355,7 @@ const STYLES = `
   font-weight: 600 !important;
   height: 22px !important;
 }
-`
+\`
 
 const DiscoverStudents = () => {
   const navigate = useNavigate()
@@ -373,11 +366,6 @@ const DiscoverStudents = () => {
   const [domainFilter, setDomainFilter] = useState('All')
   const [bgFilter, setBgFilter] = useState('All')
   const [aiWaking, setAiWaking] = useState(false)
-  
-  // Profile modal state
-  const [selectedStudent, setSelectedStudent] = useState(null)
-  const [studentProjects, setStudentProjects] = useState([])
-  const [loadingProjects, setLoadingProjects] = useState(false)
   
   const canvasRef = useRef(null)
 
@@ -530,8 +518,8 @@ const DiscoverStudents = () => {
             
             const alpha = (1 - dist / lineMaxDist) * 0.3
             ctx.strokeStyle = isNearMouse
-              ? `rgba(255, 193, 7, ${alpha * 2.5})`
-              : (scrollFactor > 0.2 ? `rgba(255, 193, 7, ${alpha * 1.5})` : `rgba(0, 0, 0, ${alpha * 1.2})`)
+              ? \`rgba(255, 193, 7, \${alpha * 2.5})\`
+              : (scrollFactor > 0.2 ? \`rgba(255, 193, 7, \${alpha * 1.5})\` : \`rgba(0, 0, 0, \${alpha * 1.2})\`)
             ctx.lineWidth = isNearMouse 
               ? 1.2 + (scrollFactor * 0.5)
               : 0.8 + (scrollFactor * 0.5)
@@ -645,20 +633,6 @@ const DiscoverStudents = () => {
     return match;
   })
 
-  const handleViewProfile = async (student) => {
-    setSelectedStudent(student)
-    setLoadingProjects(true)
-    try {
-      const res = await api.get('/projects', { params: { uploadedBy: student._id || student.id } })
-      setStudentProjects(res.data.data || [])
-    } catch (error) {
-      console.error('Failed to load student projects', error)
-      setStudentProjects([])
-    } finally {
-      setLoadingProjects(false)
-    }
-  }
-
   // Icons mapper for filters
   const getDomainIcon = (dom) => {
     switch(dom) {
@@ -759,7 +733,7 @@ const DiscoverStudents = () => {
                   {availableDomains.map((dom) => (
                     <Button 
                       key={dom} 
-                      className={`vx-filter-btn-item ${domainFilter === dom ? 'active' : ''}`}
+                      className={\`vx-filter-btn-item \${domainFilter === dom ? 'active' : ''}\`}
                       onClick={() => setDomainFilter(dom)}
                       startIcon={dom !== 'All' ? getDomainIcon(dom) : <Layers sx={{ fontSize: 16 }} />}
                     >
@@ -781,21 +755,21 @@ const DiscoverStudents = () => {
                 </Box>
                 <Box className="vx-filter-buttons-grid">
                   <Button 
-                    className={`vx-filter-btn-item ${bgFilter === 'All' ? 'active' : ''}`}
+                    className={\`vx-filter-btn-item \${bgFilter === 'All' ? 'active' : ''}\`}
                     onClick={() => setBgFilter('All')}
                     startIcon={<Layers sx={{ fontSize: 16 }} />}
                   >
                     All Degrees
                   </Button>
                   <Button 
-                    className={`vx-filter-btn-item ${bgFilter === 'Computer Science' ? 'active' : ''}`}
+                    className={\`vx-filter-btn-item \${bgFilter === 'Computer Science' ? 'active' : ''}\`}
                     onClick={() => setBgFilter('Computer Science')}
                     startIcon={<Code sx={{ fontSize: 16 }} />}
                   >
                     Computer Science
                   </Button>
                   <Button 
-                    className={`vx-filter-btn-item ${bgFilter === 'Engineering' ? 'active' : ''}`}
+                    className={\`vx-filter-btn-item \${bgFilter === 'Engineering' ? 'active' : ''}\`}
                     onClick={() => setBgFilter('Engineering')}
                     startIcon={<School sx={{ fontSize: 16 }} />}
                   >
@@ -813,13 +787,13 @@ const DiscoverStudents = () => {
                 </Box>
                 <Box className="vx-filter-buttons-grid">
                   <Button 
-                    className={`vx-filter-btn-item ${!isAiMode ? 'active' : ''}`}
+                    className={\`vx-filter-btn-item \${!isAiMode ? 'active' : ''}\`}
                     onClick={() => setIsAiMode(false)}
                   >
-                    Standard Search
+                    Standard Keywords
                   </Button>
                   <Button 
-                    className={`vx-filter-btn-item ${isAiMode ? 'active' : ''}`}
+                    className={\`vx-filter-btn-item \${isAiMode ? 'active' : ''}\`}
                     onClick={() => setIsAiMode(true)}
                   >
                     AI Semantic Match
@@ -831,6 +805,29 @@ const DiscoverStudents = () => {
 
           {/* ══════ STUDENTS SECTION ══════ */}
           <Box className="vx-projects-section">
+            {/* AI Warm-Up Banner */}
+            {aiWaking && (
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 2,
+                background: 'rgba(255, 193, 7, 0.08)',
+                border: '1px solid rgba(255, 193, 7, 0.3)',
+                borderRadius: '12px', px: 3, py: 2, mb: 3,
+                backdropFilter: 'blur(8px)'
+              }}>
+                <Box sx={{
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#FFC107',
+                  animation: 'pulse 1.4s ease-in-out infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                    '50%': { opacity: 0.4, transform: 'scale(0.6)' }
+                  }
+                }} />
+                <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111' }}>
+                  🧠 AI engine is waking up on Render's free tier — this takes ~30 seconds on first use. Please wait…
+                </Typography>
+              </Box>
+            )}
             {loading ? (
               <Grid container spacing={4}>
                 {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -887,7 +884,7 @@ const DiscoverStudents = () => {
                                   <Chip key={skill} label={skill} size="small" className="ds-skill-chip" />
                                 ))}
                                 {(student.profileDetails.skills).length > 4 && (
-                                  <Chip label={`+${student.profileDetails.skills.length - 4}`} size="small" className="ds-skill-chip" />
+                                  <Chip label={\`+\${student.profileDetails.skills.length - 4}\`} size="small" className="ds-skill-chip" />
                                 )}
                               </Box>
                             )}
@@ -905,7 +902,7 @@ const DiscoverStudents = () => {
                               fullWidth 
                               endIcon={<ArrowForward />} 
                               className="vx-btn-action"
-                              onClick={() => handleViewProfile(student)}
+                              onClick={() => {}}
                             >
                               View Profile
                             </Button>
@@ -919,128 +916,13 @@ const DiscoverStudents = () => {
             )}
           </Box>
         </Container>
-
-        {/* ══════ STUDENT PROFILE DIALOG ══════ */}
-        <Dialog 
-          open={Boolean(selectedStudent)} 
-          onClose={() => setSelectedStudent(null)}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            style: {
-              borderRadius: 20,
-              padding: '8px'
-            }
-          }}
-        >
-          {selectedStudent && (
-            <>
-              <DialogTitle sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#0F172A' }}>
-                {selectedStudent.name}'s Profile
-              </DialogTitle>
-              <DialogContent dividers sx={{ borderColor: '#F1F5F9' }}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-                    About
-                  </Typography>
-                  <Typography variant="body1" sx={{ color: '#334155', lineHeight: 1.6 }}>
-                    {selectedStudent.profileDetails?.description || "No description provided."}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-                    Skills
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {(selectedStudent.profileDetails?.skills || []).map(skill => (
-                      <Chip key={skill} label={skill} size="small" sx={{ background: '#F8FAFC', fontWeight: 600, color: '#475569' }} />
-                    ))}
-                  </Box>
-                </Box>
-
-                <Box>
-                  <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
-                    Uploaded Projects & Milestones
-                  </Typography>
-                  
-                  {loadingProjects ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress size={30} sx={{ color: '#FFC107' }} />
-                    </Box>
-                  ) : studentProjects.length === 0 ? (
-                    <Typography sx={{ color: '#94A3B8', fontStyle: 'italic' }}>
-                      This student hasn't uploaded any projects yet.
-                    </Typography>
-                  ) : (
-                    <List sx={{ p: 0 }}>
-                      {studentProjects.map((proj, idx) => (
-                        <React.Fragment key={proj._id}>
-                          <ListItem sx={{ px: 0, py: 1.5 }}>
-                            <ListItemText 
-                              primary={proj.title}
-                              primaryTypographyProps={{ fontWeight: 700, color: '#0F172A' }}
-                              secondary={
-                                <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                  <Domain sx={{ fontSize: 14, color: '#94A3B8' }} />
-                                  <Typography component="span" sx={{ fontSize: '0.8rem', color: '#64748B' }}>
-                                    {proj.domain}
-                                  </Typography>
-                                </Box>
-                              }
-                            />
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              sx={{ borderColor: '#E2E8F0', color: '#0F172A', fontWeight: 600, borderRadius: '8px' }}
-                              onClick={() => navigate(`/student/project/${proj._id}`)}
-                            >
-                              View
-                            </Button>
-                          </ListItem>
-                          {idx < studentProjects.length - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                    </List>
-                  )}
-                </Box>
-              </DialogContent>
-              <DialogActions sx={{ p: 2, pt: 2 }}>
-                <Button 
-                  onClick={() => setSelectedStudent(null)} 
-                  sx={{ color: '#64748B', fontWeight: 600 }}
-                >
-                  Close
-                </Button>
-                <Button 
-                  variant="contained"
-                  onClick={async () => {
-                    try {
-                      const res = await api.post('/chat/conversations', { receiverId: selectedStudent._id || selectedStudent.id });
-                      setSelectedStudent(null);
-                      navigate('/startup/messages');
-                    } catch (err) {
-                      console.error('Failed to create conversation', err);
-                      alert('Could not start conversation. Please try again.');
-                    }
-                  }} 
-                  sx={{ 
-                    background: '#111111', 
-                    color: '#FFF', 
-                    fontWeight: 700,
-                    borderRadius: '10px',
-                    '&:hover': { background: '#FFC107', color: '#111' }
-                  }}
-                >
-                  Message Student
-                </Button>
-              </DialogActions>
-            </>
-          )}
-        </Dialog>
       </Box>
     </>
   )
 }
 
 export default DiscoverStudents
+`;
+
+fs.writeFileSync('src/pages/startup/DiscoverStudents.jsx', code);
+console.log('DiscoverStudents.jsx has been rewritten successfully.');

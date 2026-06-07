@@ -4,7 +4,7 @@ import { Drawer, Box, Typography, Divider } from '@mui/material'
 import {
   Dashboard, Person, Work, Notifications,
   Upload, Add, ManageAccounts, Assessment,
-  Description, School, Gavel, ChevronRight,
+  Description, School, Gavel, ChevronRight, Chat
 } from '@mui/icons-material'
 import { useAuth } from '../../context/AuthContext'
 import { motion } from 'framer-motion'
@@ -139,7 +139,8 @@ const studentMenu = [
   ]},
   { section: 'Collaboration', items: [
     { text: 'My Collaborations', icon: <School />,      path: '/student/collaborations' },
-    { text: 'My Letters',        icon: <Description />, path: '/student/letters' },
+    { text: 'Messages',          icon: <Chat />,         path: '/student/messages' },
+    { text: 'My Letters',        icon: <Description />,  path: '/student/letters' },
     { text: 'Notifications',     icon: <Notifications />, path: '/student/notifications' },
   ]},
 ]
@@ -158,6 +159,7 @@ const startupMenu = [
   ]},
   { section: 'Collaboration', items: [
     { text: 'Manage Collaborations',  icon: <School />,      path: '/startup/collaborations' },
+    { text: 'Messages',               icon: <Chat />,         path: '/startup/messages' },
     { text: 'Issue Exp. Letter',      icon: <Description />, path: '/startup/experience-letter' },
   ]},
 ]

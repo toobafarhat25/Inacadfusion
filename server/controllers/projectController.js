@@ -6,11 +6,12 @@ const path = require('path');
 // @access  Public
 exports.getProjects = async (req, res, next) => {
   try {
-    const { domain, type, technologies, requiredSkills, minCost, maxCost, search } = req.query;
+    const { domain, type, technologies, requiredSkills, minCost, maxCost, search, uploadedBy } = req.query;
     const filter = { status: 'active' };
 
     if (domain) filter.domain = { $regex: domain, $options: 'i' };
     if (type) filter.type = type;
+    if (uploadedBy) filter.uploadedBy = uploadedBy;
     if (technologies) filter.technologies = { $in: technologies.split(',').map(t => t.trim()) };
     if (requiredSkills) filter.requiredSkills = { $in: requiredSkills.split(',').map(s => s.trim()) };
     if (minCost || maxCost) {

@@ -27,6 +27,7 @@ const UploadProject = lazy(() => import('./pages/student/UploadProject'))
 const StudentManageProjects = lazy(() => import('./pages/student/ManageProjects'))
 const NotificationsPage = lazy(() => import('./pages/student/NotificationsPage'))
 const MyLetters = lazy(() => import('./pages/student/MyLetters'))
+const MessagesPage = lazy(() => import('./pages/shared/MessagesPage'))
 
 // Startup Pages
 const StartupDashboard = lazy(() => import('./pages/startup/StartupDashboard'))
@@ -380,6 +381,22 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/student/messages"
+            element={
+              <ProtectedRoute allowedRoles={['student']}>
+                <motion.div
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={pageVariants}
+                  transition={pageTransition}
+                >
+                  <MessagesPage />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Startup Routes */}
           <Route
@@ -506,6 +523,22 @@ const AppContent = () => {
                   transition={pageTransition}
                 >
                   <ExperienceLetter />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/startup/messages"
+            element={
+              <ProtectedRoute allowedRoles={['startup']}>
+                <motion.div
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  variants={pageVariants}
+                  transition={pageTransition}
+                >
+                  <MessagesPage />
                 </motion.div>
               </ProtectedRoute>
             }
