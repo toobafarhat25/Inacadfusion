@@ -351,45 +351,7 @@ const LandingPage = () => {
 
         <Container maxWidth="md" sx={{ position: 'relative', zIndex: 2, textAlign: 'center' }}>
           
-          {/* Glass Pill Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            style={{ display: 'flex', justifyContent: 'center' }}
-          >
-            <Box
-              sx={{
-                mb: 5,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 1.5,
-                background: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(12px)',
-                padding: '6px 16px',
-                borderRadius: '100px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  borderColor: 'rgba(255, 255, 255, 0.15)',
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#FFC107', boxShadow: '0 0 10px rgba(255,193,7,0.8)' }} />
-              <Typography
-                sx={{
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: 'rgba(255,255,255,0.8)',
-                }}
-              >
-                InAcadFusion Platform <Box component="span" sx={{ color: 'rgba(255,255,255,0.4)', ml: 0.5 }}>— Now Live</Box>
-              </Typography>
-            </Box>
-          </motion.div>
+
 
           {/* Premium Headline */}
           <motion.div
