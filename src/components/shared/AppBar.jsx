@@ -188,7 +188,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
 
   return (
     <>
-      {/* Absolute Header for Logo and Drawer Toggle */}
+      {/* Absolute Header for Logo and Drawer Toggle — CONSISTENT ON ALL PAGES */}
       <Box
         sx={{
           position: 'fixed',
@@ -197,18 +197,16 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           display: 'flex',
           alignItems: 'center',
           zIndex: 1300,
-          transition: 'all 0.3s ease',
-          // On app pages (logged in, non-landing): always show frosted glass pill.
-          // On landing page when scrolled: also show frosted pill so logo stays readable.
-          ...(!isLandingPage && !isAuthPage && user ? {
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-            borderRadius: '50px',
-            px: 1.5,
-            py: 0.75,
-          } : {}),
+          transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          // Same dark glass pill on ALL pages — matches TubeLightNavbar style
+          backgroundColor: 'rgba(18, 18, 18, 0.75)',
+          backdropFilter: 'blur(24px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '50px',
+          px: 1.5,
+          py: 0.75,
         }}
       >
         {user && (
@@ -217,16 +215,15 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
             aria-label="open drawer"
             onClick={onMenuClick}
             edge="start"
-            size={isLandingPage ? "medium" : "small"}
+            size="small"
             sx={{
-              mr: isLandingPage ? 2 : 1.5,
-              p: isLandingPage ? 1 : 0.75,
-              backgroundColor: 'rgba(255, 193, 7, 0.12)',
+              mr: 1.5,
+              p: 0.75,
+              backgroundColor: 'rgba(255, 193, 7, 0.15)',
               color: '#FFC107',
               '&:hover': {
-                backgroundColor: 'rgba(255, 193, 7, 0.22)',
+                backgroundColor: 'rgba(255, 193, 7, 0.28)',
               },
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               backdropFilter: 'blur(10px)',
               transition: 'all 0.3s ease',
             }}
@@ -240,7 +237,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           sx={{
             fontWeight: 900,
             cursor: 'pointer',
-            fontSize: isDarkHeroPage ? { xs: '1.2rem', md: '1.5rem' } : { xs: '1.05rem', md: '1.2rem' },
+            fontSize: { xs: '1.1rem', md: '1.3rem' },
             letterSpacing: '-0.03em',
             fontFamily: '"Inter", system-ui, sans-serif',
             display: 'flex',
@@ -256,10 +253,8 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           <Box
             component="span"
             sx={{
-              // On landing page: white in hero, dark when scrolled. On other pages always dark.
               color: '#FFC107',
-              textShadow: isDarkHeroPage && !scrolled ? '0 2px 10px rgba(0,0,0,0.5)' : 'none',
-              transition: 'color 0.3s ease, text-shadow 0.3s ease',
+              transition: 'color 0.3s ease',
             }}
           >
             InAcad
@@ -271,7 +266,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
-              filter: 'drop-shadow(0 2px 12px rgba(255, 193, 7, 0.3))',
+              filter: 'drop-shadow(0 2px 12px rgba(255, 193, 7, 0.4))',
               transition: 'filter 0.3s ease',
             }}
           >
@@ -279,6 +274,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           </Box>
         </Typography>
       </Box>
+
 
       {/* Floating Tube Light Navbar */}
       <TubeLightNavbar items={navItems}>
