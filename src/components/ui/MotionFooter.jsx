@@ -311,6 +311,8 @@ export function CinematicFooter() {
             overflow: 'hidden',
             backgroundColor: '#0A0A0A',
             color: '#FFFFFF',
+            // Let scroll wheel pass through the fixed backdrop to the document
+            pointerEvents: 'none',
           }}
         >
           
@@ -343,6 +345,7 @@ export function CinematicFooter() {
               top: '3rem',
               left: 0,
               width: '100%',
+              pointerEvents: 'auto',
               overflow: 'hidden',
               borderTop: '1px solid rgba(255,255,255,0.05)',
               borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -386,6 +389,7 @@ export function CinematicFooter() {
               width: '100%',
               maxWidth: '1024px',
               mx: 'auto',
+              pointerEvents: 'auto',
             }}
           >
             <Typography
@@ -426,30 +430,8 @@ export function CinematicFooter() {
                 </MagneticButton>
               </Box>
 
-              {/* Secondary Text Links */}
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 1.5, md: 3 }, width: '100%', mt: 1 }}>
-                <MagneticButton 
-                  onClick={() => navigate('/about')} 
-                  className="footer-glass-pill"
-                  style={{ padding: '12px 24px', borderRadius: '50px', fontSize: '0.875rem', fontWeight: 500 }}
-                >
-                  About Us
-                </MagneticButton>
-                <MagneticButton 
-                  onClick={() => navigate('/contact')} 
-                  className="footer-glass-pill"
-                  style={{ padding: '12px 24px', borderRadius: '50px', fontSize: '0.875rem', fontWeight: 500 }}
-                >
-                  Contact Support
-                </MagneticButton>
-                <MagneticButton 
-                  onClick={() => window.scrollTo(0,0)} 
-                  className="footer-glass-pill"
-                  style={{ padding: '12px 24px', borderRadius: '50px', fontSize: '0.875rem', fontWeight: 500 }}
-                >
-                  Privacy Policy
-                </MagneticButton>
-              </Box>
+
+
             </Box>
           </Box>
 
@@ -466,6 +448,7 @@ export function CinematicFooter() {
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 3,
+              pointerEvents: 'auto',
             }}
           >
             {/* Copyright */}

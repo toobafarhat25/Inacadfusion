@@ -124,7 +124,9 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
   const isPublicPage = !user || location.pathname.startsWith('/login') || location.pathname.startsWith('/register')
   const isLandingPage = location.pathname === '/'
   const isProjectsPage = location.pathname === '/projects'
-  const isDarkHeroPage = isLandingPage || isProjectsPage
+  const isAboutPage = location.pathname === '/about'
+  const isContactPage = location.pathname === '/contact'
+  const isDarkHeroPage = isLandingPage || isProjectsPage || isAboutPage || isContactPage
   const isAuthPage = location.pathname.startsWith('/login') || location.pathname.startsWith('/register')
 
   let appBarStyle = {
@@ -188,7 +190,6 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
 
   return (
     <>
-      {/* Absolute Header for Logo and Drawer Toggle — CONSISTENT ON ALL PAGES */}
       <Box
         sx={{
           position: 'fixed',
@@ -198,15 +199,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           alignItems: 'center',
           zIndex: 1300,
           transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-          // Same dark glass pill on ALL pages — matches TubeLightNavbar style
-          backgroundColor: 'rgba(18, 18, 18, 0.75)',
-          backdropFilter: 'blur(24px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '50px',
-          px: 1.5,
-          py: 0.75,
+          // Floating logo style with no background container
         }}
       >
         {user && (
@@ -253,7 +246,8 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           <Box
             component="span"
             sx={{
-              color: '#FFC107',
+              // On landing page: mustard in hero, dark when scrolled. On other pages always dark.
+              color: isDarkHeroPage || isAuthPage ? '#FFC107' : '#111827',
               transition: 'color 0.3s ease',
             }}
           >

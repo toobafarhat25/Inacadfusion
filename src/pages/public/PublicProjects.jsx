@@ -394,20 +394,8 @@ const PublicProjects = () => {
             }}
             style={{ y: heroY, opacity: heroOpacity }}
           >
-            {/* Badge */}
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.7 }}>
-              <Box sx={{
-                display: 'inline-flex', alignItems: 'center', gap: 1.5,
-                background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)',
-                px: 2, py: 0.75, borderRadius: '100px',
-                border: '1px solid rgba(255,255,255,0.08)', mb: 4,
-              }}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FFC107', boxShadow: '0 0 10px rgba(255,193,7,0.8)' }} />
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                  Discover Projects <Box component="span" sx={{ color: 'rgba(255,255,255,0.35)' }}>— Browse & Apply</Box>
-                </Typography>
-              </Box>
-            </motion.div>
+
+
 
             {/* Headline */}
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, delay: 0.1 }}>
