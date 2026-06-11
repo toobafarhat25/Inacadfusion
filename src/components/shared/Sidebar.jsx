@@ -26,59 +26,63 @@ const STYLES = `
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px 10px 16px;
-  margin: 2px 12px;
-  border-radius: 8px;
+  padding: 10px 16px;
+  margin: 2px 10px;
+  border-radius: 10px;
   cursor: pointer;
   text-decoration: none;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   overflow: hidden;
   background: transparent;
 }
 .vx-nav-item:hover {
-  background: #F3F4F6;
+  background: #FFF8E1;
 }
 .vx-nav-item.active {
-  background: #FFFBEB;
+  background: #FFC107;
+  box-shadow: 0 4px 14px rgba(255, 193, 7, 0.35);
 }
 
 .vx-nav-icon {
-  width: 32px; height: 32px;
-  border-radius: 8px;
+  width: 30px; height: 30px;
+  border-radius: 7px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s ease;
-  background: #F9FAFB;
+  transition: all 0.18s ease;
+  background: #F3F4F6;
   border: 1px solid #E5E7EB;
 }
-
+.vx-nav-item:hover .vx-nav-icon {
+  background: #FFF3CD;
+  border-color: #FFECB3;
+}
 .vx-nav-item.active .vx-nav-icon {
-  background: #FFC107;
-  border-color: #FFC107;
+  background: rgba(0,0,0,0.08);
+  border-color: transparent;
 }
 
 .vx-nav-label {
   font-family: 'Inter', system-ui;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: #4B5563;
   flex: 1;
-  transition: color 0.2s ease;
+  transition: color 0.18s ease;
   white-space: nowrap;
 }
 .vx-nav-item.active .vx-nav-label {
-  color: #D97706;
-  font-weight: 600;
+  color: #000000;
+  font-weight: 700;
 }
 .vx-nav-item:hover .vx-nav-label {
-  color: #111827;
+  color: #B45309;
 }
 
 .vx-nav-arrow {
   opacity: 0;
   transform: translateX(-4px);
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   color: #9CA3AF;
   font-size: 16px !important;
 }
@@ -88,25 +92,28 @@ const STYLES = `
   transform: translateX(0);
 }
 .vx-nav-item.active .vx-nav-arrow {
-  color: #D97706;
+  color: #000000;
+}
+.vx-nav-item:hover .vx-nav-arrow {
+  color: #B45309;
 }
 
 .vx-section-label {
   font-family: 'Inter', system-ui;
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9CA3AF;
-  padding: 20px 24px 8px;
+  color: #B45309;
+  padding: 18px 22px 6px;
 }
 
 .vx-user-card {
-  margin: 16px;
+  margin: 12px 14px;
   padding: 12px;
   border-radius: 12px;
-  background: #F9FAFB;
-  border: 1px solid #E5E7EB;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
   display: flex; align-items: center; gap: 12px;
 }
 
@@ -118,11 +125,12 @@ const STYLES = `
   font-family: 'Inter', system-ui;
   font-weight: 700; font-size: 0.85rem; color: #000;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(255,193,7,0.4);
 }
 
 .vx-sidebar-divider {
-  border-color: #E5E7EB !important;
-  margin: 8px 16px !important;
+  border-color: #FDE68A !important;
+  margin: 8px 14px !important;
 }
 `
 
@@ -178,9 +186,9 @@ const adminMenu = [
 
 // ─── ROLE BADGE COLORS ───────────────────────────────────────────────────────
 const ROLE_STYLE = {
-  student: { label: 'Student',  color: '#6366F1', bg: 'rgba(99, 102, 241, 0.1)' },
-  startup: { label: 'Startup',  color: '#D97706', bg: 'rgba(217, 119, 6, 0.1)' },
-  admin:   { label: 'Admin',    color: '#10B981', bg: 'rgba(16, 185, 129, 0.1)' },
+  student: { label: 'Student',  color: '#92400E', bg: 'rgba(255, 193, 7, 0.15)' },
+  startup: { label: 'Startup',  color: '#92400E', bg: 'rgba(255, 193, 7, 0.15)' },
+  admin:   { label: 'Admin',    color: '#92400E', bg: 'rgba(255, 193, 7, 0.15)' },
 }
 
 // ─── NAV ITEM ────────────────────────────────────────────────────────────────
@@ -194,7 +202,7 @@ function NavItem({ item, isActive, onClick, index }) {
       <div className={`vx-nav-item ${isActive ? 'active' : ''}`} onClick={onClick}>
         <div className="vx-nav-icon">
           {React.cloneElement(item.icon, {
-            sx: { fontSize: 16, color: isActive ? '#000000' : '#4B5563' },
+            sx: { fontSize: 16, color: isActive ? '#000000' : '#6B7280' },
           })}
         </div>
         <span className="vx-nav-label">{item.text}</span>

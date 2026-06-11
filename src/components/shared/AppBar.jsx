@@ -221,14 +221,10 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
             sx={{
               mr: isLandingPage ? 2 : 1.5,
               p: isLandingPage ? 1 : 0.75,
-              backgroundColor: (isDarkHeroPage && !scrolled) || isAuthPage
-                ? 'rgba(255, 255, 255, 0.1)'
-                : 'rgba(0, 0, 0, 0.04)',
-              color: isDarkHeroPage || isAuthPage ? '#FFC107' : '#111827',
+              backgroundColor: 'rgba(255, 193, 7, 0.12)',
+              color: '#FFC107',
               '&:hover': {
-                backgroundColor: (isDarkHeroPage && !scrolled) || isAuthPage
-                  ? 'rgba(255, 255, 255, 0.2)'
-                  : 'rgba(0, 0, 0, 0.08)',
+                backgroundColor: 'rgba(255, 193, 7, 0.22)',
               },
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
               backdropFilter: 'blur(10px)',
@@ -261,7 +257,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
             component="span"
             sx={{
               // On landing page: white in hero, dark when scrolled. On other pages always dark.
-              color: isDarkHeroPage || isAuthPage ? '#FFC107' : '#111827',
+              color: '#FFC107',
               textShadow: isDarkHeroPage && !scrolled ? '0 2px 10px rgba(0,0,0,0.5)' : 'none',
               transition: 'color 0.3s ease, text-shadow 0.3s ease',
             }}
