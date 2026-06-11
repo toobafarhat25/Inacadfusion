@@ -246,8 +246,7 @@ const AppBar = ({ onMenuClick, drawerOpen }) => {
           <Box
             component="span"
             sx={{
-              // On landing page: mustard in hero, dark when scrolled. On other pages always dark.
-              color: isDarkHeroPage || isAuthPage ? '#FFC107' : '#111827',
+              color: '#FFC107',
               transition: 'color 0.3s ease',
             }}
           >
