@@ -1548,27 +1548,64 @@ const LandingPage = () => {
           overflow: 'hidden',
         }}
       >
-        {/* Animated Background Circles */}
+        {/* Animated Background Elements (Rounded Line Animations) */}
+        
+        {/* Glows */}
         <Box
           component={motion.div}
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
           sx={{
-            position: 'absolute',
-            bottom: '10%',
-            left: '5%',
-            width: 200,
-            height: 200,
-            borderRadius: '50%',
-            border: '2px solid rgba(255,193,7,0.05)',
-            zIndex: 0,
+            position: 'absolute', top: '10%', left: '10%',
+            width: 400, height: 400,
+            background: 'radial-gradient(circle, rgba(255,193,7,0.08) 0%, transparent 60%)',
+            filter: 'blur(40px)', zIndex: 0, pointerEvents: 'none',
+          }}
+        />
+        
+        {/* Rounded Line (Capsule) Animations */}
+        <Box
+          component={motion.div}
+          animate={{ x: ['-20vw', '120vw'] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+          sx={{
+            position: 'absolute', top: '25%', left: 0,
+            width: '300px', height: '4px',
+            background: 'linear-gradient(90deg, transparent, rgba(255,193,7,0.6), transparent)',
+            borderRadius: '50px', zIndex: 1, pointerEvents: 'none'
+          }}
+        />
+        <Box
+          component={motion.div}
+          animate={{ x: ['120vw', '-20vw'] }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'linear', delay: 2 }}
+          sx={{
+            position: 'absolute', top: '65%', right: 0,
+            width: '400px', height: '4px',
+            background: 'linear-gradient(90deg, transparent, rgba(255,193,7,0.4), transparent)',
+            borderRadius: '50px', zIndex: 1, pointerEvents: 'none'
+          }}
+        />
+        <Box
+          component={motion.div}
+          animate={{ y: ['-20vh', '120vh'] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'linear', delay: 1 }}
+          sx={{
+            position: 'absolute', left: '15%', top: 0,
+            width: '4px', height: '250px',
+            background: 'linear-gradient(180deg, transparent, rgba(255,193,7,0.5), transparent)',
+            borderRadius: '50px', zIndex: 1, pointerEvents: 'none'
+          }}
+        />
+        <Box
+          component={motion.div}
+          animate={{ y: ['120vh', '-20vh'] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'linear', delay: 4 }}
+          sx={{
+            position: 'absolute', right: '20%', bottom: 0,
+            width: '4px', height: '350px',
+            background: 'linear-gradient(180deg, transparent, rgba(255,193,7,0.4), transparent)',
+            borderRadius: '50px', zIndex: 1, pointerEvents: 'none'
           }}
         />
 
@@ -1610,13 +1647,14 @@ const LandingPage = () => {
 
           <Grid container spacing={4}>
             {testimonials.map((testimonial, index) => (
-              <Grid item xs={12} md={4} key={index}>
+              <Grid item xs={12} md={4} key={index} sx={{ display: 'flex' }}>
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
                   transition={{ duration: 0.5, delay: index * 0.15 }}
                   whileHover={{ y: -5 }}
+                  style={{ height: '100%', width: '100%' }}
                 >
                   <Card
                     sx={{

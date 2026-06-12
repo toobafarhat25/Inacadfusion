@@ -601,14 +601,14 @@ export default function ContactPage() {
 
                   <Grid container spacing={2.5}>
                     {infoBlocks.map((block, i) => (
-                      <Grid item xs={12} sm={6} key={i}>
+                      <Grid item xs={12} sm={6} md={12} xl={6} key={i}>
                         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.1 }}>
                           <div className="cp-info-block">
                             <div className="cp-info-icon">{block.icon}</div>
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                               <Typography sx={{ fontFamily: '"Inter", system-ui', fontWeight: 800, fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', mb: 0.2 }}>{block.title}</Typography>
                               {block.lines.map((l, j) => (
-                                <Typography key={j} sx={{ fontFamily: '"Inter", system-ui', fontWeight: 600, fontSize: '0.92rem', color: '#0A0A0A', lineHeight: 1.3 }}>{l}</Typography>
+                                <Typography key={j} sx={{ fontFamily: '"Inter", system-ui', fontWeight: 600, fontSize: '0.92rem', color: '#0A0A0A', lineHeight: 1.3, overflowWrap: 'anywhere' }}>{l}</Typography>
                               ))}
                             </Box>
                           </div>
@@ -657,13 +657,13 @@ export default function ContactPage() {
                           <Grid item xs={12} sm={6}>
                             <div className="cp-input-wrap">
                               <label className="cp-input-label">First Name</label>
-                              <input className="cp-input" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Jane" required />
+                              <input className="cp-input" name="firstName" value={form.firstName} onChange={handleChange} placeholder="Fatima" required />
                             </div>
                           </Grid>
                           <Grid item xs={12} sm={6}>
                             <div className="cp-input-wrap">
                               <label className="cp-input-label">Last Name</label>
-                              <input className="cp-input" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Smith" required />
+                              <input className="cp-input" name="lastName" value={form.lastName} onChange={handleChange} placeholder="Khan" required />
                             </div>
                           </Grid>
                         </Grid>
@@ -672,7 +672,7 @@ export default function ContactPage() {
                         <Box sx={{ mb: 2.5 }}>
                           <div className="cp-input-wrap">
                             <label className="cp-input-label">Email Address</label>
-                            <input className="cp-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="jane@example.com" required />
+                            <input className="cp-input" type="email" name="email" value={form.email} onChange={handleChange} placeholder="fatima.khan@example.pk" required />
                           </div>
                         </Box>
 
@@ -680,7 +680,7 @@ export default function ContactPage() {
                         <Box sx={{ mb: 2.5 }}>
                           <div className="cp-input-wrap">
                             <label className="cp-input-label">Phone (Optional)</label>
-                            <input className="cp-input" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" />
+                            <input className="cp-input" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+92 300 1234567" />
                           </div>
                         </Box>
 

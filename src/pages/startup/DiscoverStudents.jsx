@@ -566,9 +566,10 @@ const DiscoverStudents = () => {
         let lastError = null
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
           try {
-            const res = await api.post('/ai/recommend-students', { query: search, top_n: 9 }, { timeout: 15000 })
+            const res = await api.post('/ai/recommend', { query: search, top_n: 20 }, { timeout: 15000 })
             setAiWaking(false)
-            setStudents(res.data.data || [])
+            const allProjects = res.data.data || []
+            setStudents(allProjects.filter(p => p.type === 'student_fyp'))
             setLoading(false)
             return
           } catch (err) {
@@ -589,16 +590,15 @@ const DiscoverStudents = () => {
         console.warn('AI unavailable after retries, falling back to standard search.', lastError?.message)
         setAiWaking(false)
         setIsAiMode(false)
-        const params = {}
+        const params = { type: 'student_fyp' }
         if (search) params.search = search
-        const fallback = await api.get('/profile/students', { params }).catch(() => ({ data: { data: [] } }))
+        const fallback = await api.get('/projects', { params }).catch(() => ({ data: { data: [] } }))
         setStudents(fallback.data.data || [])
       } else {
         setAiWaking(false)
-        const params = {}
+        const params = { type: 'student_fyp' }
         if (search) params.search = search
-        // Since backend standard get '/students' might not support domain filter natively, we filter below
-        const res = await api.get('/profile/students', { params })
+        const res = await api.get('/projects', { params })
         setStudents(res.data.data || [])
       }
     } catch (err) {
@@ -615,9 +615,10 @@ const DiscoverStudents = () => {
 
   useEffect(() => {
     if (students.length > 0) {
-        const uniqueDoms = Array.from(new Set(students.map(s => s.profileDetails?.industryDomain))).filter(Boolean)
-        const merged = Array.from(new Set(['AI', 'Website', 'Technology', 'Mobile App', ...uniqueDoms]))
-        setAvailableDomains(['All', ...merged])
+        const uniqueDoms = Array.from(new Set(students.map(s => s.domain))).filter(Boolean)
+        setAvailableDomains(['All', ...uniqueDoms])
+    } else {
+        setAvailableDomains(['All'])
     }
   }, [students])
 
@@ -629,17 +630,19 @@ const DiscoverStudents = () => {
   const filteredStudents = students.filter(student => {
     let match = true;
     if (domainFilter !== 'All') {
-        match = match && student.profileDetails?.industryDomain === domainFilter;
+        const dom = (student.domain || '').toLowerCase();
+        const filter = domainFilter.toLowerCase();
+        match = match && dom.includes(filter);
     }
     if (bgFilter !== 'All') {
-        const bg = student.profileDetails?.academicBackground || '';
-        match = match && bg.includes(bgFilter);
+        const bg = (student.uploadedBy?.profileDetails?.academicBackground || '').toLowerCase();
+        match = match && bg.includes(bgFilter.toLowerCase());
     }
     if (!isAiMode && search) {
         const q = search.toLowerCase();
-        const skills = (student.profileDetails?.skills || []).join(' ').toLowerCase();
-        const name = (student.name || '').toLowerCase();
-        const background = (student.profileDetails?.academicBackground || '').toLowerCase();
+        const skills = (student.technologies || []).join(' ').toLowerCase();
+        const name = (student.title || '').toLowerCase();
+        const background = (student.domain || '').toLowerCase();
         match = match && (name.includes(q) || skills.includes(q) || background.includes(q));
     }
     return match;
@@ -647,16 +650,6 @@ const DiscoverStudents = () => {
 
   const handleViewProfile = async (student) => {
     setSelectedStudent(student)
-    setLoadingProjects(true)
-    try {
-      const res = await api.get('/projects', { params: { uploadedBy: student._id || student.id } })
-      setStudentProjects(res.data.data || [])
-    } catch (error) {
-      console.error('Failed to load student projects', error)
-      setStudentProjects([])
-    } finally {
-      setLoadingProjects(false)
-    }
   }
 
   // Icons mapper for filters
@@ -715,11 +708,11 @@ const DiscoverStudents = () => {
           {/* ══════ HERO SEARCH SECTION ══════ */}
           <Box className="vx-hero-section">
             <Typography variant="h1" className="vx-hero-title">
-              Find the Perfect <span>Talent</span> <br />
-              for your Next Startup Project
+              Find the Perfect <span>Project</span> <br />
+              for your Next Startup Collaboration
             </Typography>
             <Typography className="vx-hero-desc">
-              InAcadFusion is a search and recommendation platform that connects startups and students. Describe your required skills or roles below to find matching students.
+              InAcadFusion is a search and recommendation platform that connects startups and students. Describe your required skills or interests below to find matching student projects.
             </Typography>
 
             <form onSubmit={handleSearchSubmit}>
@@ -874,28 +867,28 @@ const DiscoverStudents = () => {
                           
                           <div className="vx-card-body">
                             <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: '#0F172A', mb: 1.5, lineHeight: 1.35 }}>
-                              {student.name}
+                              {student.title}
                             </Typography>
                             
                             <Typography sx={{ fontSize: '0.9rem', color: '#64748B', mb: 3, flexGrow: 1, lineHeight: 1.6 }}>
-                              {(student.profileDetails?.description || "No description provided.").length > 130 ? (student.profileDetails?.description || "No description provided.").substring(0, 130) + '...' : (student.profileDetails?.description || "No description provided.")}
+                              {(student.description || "No description provided.").length > 130 ? (student.description || "No description provided.").substring(0, 130) + '...' : (student.description || "No description provided.")}
                             </Typography>
 
-                            {(student.profileDetails?.skills || []).length > 0 && (
+                            {(student.technologies || []).length > 0 && (
                               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7, mb: 2 }}>
-                                {(student.profileDetails.skills).slice(0, 4).map(skill => (
+                                {(student.technologies).slice(0, 4).map(skill => (
                                   <Chip key={skill} label={skill} size="small" className="ds-skill-chip" />
                                 ))}
-                                {(student.profileDetails.skills).length > 4 && (
-                                  <Chip label={`+${student.profileDetails.skills.length - 4}`} size="small" className="ds-skill-chip" />
+                                {(student.technologies).length > 4 && (
+                                  <Chip label={`+${student.technologies.length - 4}`} size="small" className="ds-skill-chip" />
                                 )}
                               </Box>
                             )}
 
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
-                              <School sx={{ fontSize: 18, color: '#94A3B8' }} />
+                              <PersonOutline sx={{ fontSize: 18, color: '#94A3B8' }} />
                               <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569' }}>
-                                {(student.profileDetails?.academicBackground || "Various Background")}
+                                By {student.uploadedBy?.name || 'Student'}
                               </Typography>
                             </Box>
                           </div>
@@ -907,7 +900,7 @@ const DiscoverStudents = () => {
                               className="vx-btn-action"
                               onClick={() => handleViewProfile(student)}
                             >
-                              View Profile
+                              View Project
                             </Button>
                           </div>
                         </div>
@@ -936,24 +929,24 @@ const DiscoverStudents = () => {
           {selectedStudent && (
             <>
               <DialogTitle sx={{ fontWeight: 800, fontSize: '1.4rem', color: '#0F172A' }}>
-                {selectedStudent.name}'s Profile
+                {selectedStudent.title}
               </DialogTitle>
               <DialogContent dividers sx={{ borderColor: '#F1F5F9' }}>
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-                    About
+                    Project Description
                   </Typography>
                   <Typography variant="body1" sx={{ color: '#334155', lineHeight: 1.6 }}>
-                    {selectedStudent.profileDetails?.description || "No description provided."}
+                    {selectedStudent.description || "No description provided."}
                   </Typography>
                 </Box>
                 
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-                    Skills
+                    Technologies Used
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {(selectedStudent.profileDetails?.skills || []).map(skill => (
+                    {(selectedStudent.technologies || []).map(skill => (
                       <Chip key={skill} label={skill} size="small" sx={{ background: '#F8FAFC', fontWeight: 600, color: '#475569' }} />
                     ))}
                   </Box>
@@ -961,48 +954,14 @@ const DiscoverStudents = () => {
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
-                    Uploaded Projects & Milestones
+                    Creator Details
                   </Typography>
-                  
-                  {loadingProjects ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                      <CircularProgress size={30} sx={{ color: '#FFC107' }} />
-                    </Box>
-                  ) : studentProjects.length === 0 ? (
-                    <Typography sx={{ color: '#94A3B8', fontStyle: 'italic' }}>
-                      This student hasn't uploaded any projects yet.
-                    </Typography>
-                  ) : (
-                    <List sx={{ p: 0 }}>
-                      {studentProjects.map((proj, idx) => (
-                        <React.Fragment key={proj._id}>
-                          <ListItem sx={{ px: 0, py: 1.5 }}>
-                            <ListItemText 
-                              primary={proj.title}
-                              primaryTypographyProps={{ fontWeight: 700, color: '#0F172A' }}
-                              secondary={
-                                <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                                  <Domain sx={{ fontSize: 14, color: '#94A3B8' }} />
-                                  <Typography component="span" sx={{ fontSize: '0.8rem', color: '#64748B' }}>
-                                    {proj.domain}
-                                  </Typography>
-                                </Box>
-                              }
-                            />
-                            <Button 
-                              variant="outlined" 
-                              size="small" 
-                              sx={{ borderColor: '#E2E8F0', color: '#0F172A', fontWeight: 600, borderRadius: '8px' }}
-                              onClick={() => navigate(`/student/project/${proj._id}`)}
-                            >
-                              View
-                            </Button>
-                          </ListItem>
-                          {idx < studentProjects.length - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                    </List>
-                  )}
+                  <Typography sx={{ fontWeight: 700, color: '#0F172A', mb: 0.5 }}>
+                    {selectedStudent.uploadedBy?.name || 'Unknown Student'}
+                  </Typography>
+                  <Typography sx={{ color: '#64748B', fontSize: '0.9rem' }}>
+                    {selectedStudent.uploadedBy?.email || ''}
+                  </Typography>
                 </Box>
               </DialogContent>
               <DialogActions sx={{ p: 2, pt: 2 }}>
@@ -1016,7 +975,8 @@ const DiscoverStudents = () => {
                   variant="contained"
                   onClick={async () => {
                     try {
-                      const res = await api.post('/chat/conversations', { receiverId: selectedStudent._id || selectedStudent.id });
+                      const receiverId = selectedStudent.uploadedBy?._id || selectedStudent.uploadedBy?.id || selectedStudent.uploadedBy;
+                      const res = await api.post('/chat/conversations', { receiverId });
                       setSelectedStudent(null);
                       navigate('/startup/messages');
                     } catch (err) {

@@ -43,6 +43,36 @@ def clean_text(text: str) -> str:
     text = re.sub(r"[^a-z0-9+# ]", "", text)
     return " ".join(text.split())
 
+def preprocess_query(query: str) -> str:
+    """Strips conversational noise to boost technical signal in embeddings."""
+    original = query
+    query = query.lower()
+    
+    # Strip common conversational phrases
+    stop_phrases = [
+        "i need a", "i need", "we need a", "we need", "looking for a", "looking for", 
+        "we are looking for", "i want a", "i want", "searching for", "can someone", 
+        "who knows", "help me find", "find me", "someone who can", "somebody who",
+        "experienced in", "skilled in", "good at", "knowledge of", "experience with"
+    ]
+    
+    for phrase in stop_phrases:
+        query = query.replace(phrase, " ")
+        
+    # Strip generic stop words but keep technical terms (developer, engineer, react, etc.)
+    stop_words = {"a", "an", "the", "with", "for", "who", "can", "do", "make", "build", "create", "is", "are", "am", "to"}
+    words = query.split()
+    words = [w for w in words if w not in stop_words]
+    
+    cleaned = " ".join(words).strip()
+    
+    # Fallback to original if we stripped everything
+    if len(cleaned) < 2:
+        cleaned = original
+        
+    return clean_text(cleaned)
+
+
 
 def encode_texts(texts: list) -> np.ndarray:
     """Tokenize + ONNX inference + mean-pool + L2-normalise."""
@@ -187,7 +217,7 @@ async def recommend(request: QueryRequest):
         return {"data": []}
 
     try:
-        query_vec = encode_texts([clean_text(request.query)])[0]        # (384,)
+        query_vec = encode_texts([preprocess_query(request.query)])[0]        # (384,)
         scores    = project_embeddings @ query_vec                       # (N,) cosine sim
 
         top_n   = min(request.top_n, len(projects_meta))
@@ -195,8 +225,8 @@ async def recommend(request: QueryRequest):
 
         results = []
         for idx in top_idx:
-            # Enforce a minimum similarity threshold (e.g. 20%) to avoid vague matches
-            if scores[idx] < 0.20:
+            # Enforce a minimum similarity threshold to avoid vague matches
+            if scores[idx] < 0.05:
                 continue
             m = projects_meta[idx]
             results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
@@ -214,7 +244,7 @@ async def recommend_students(request: QueryRequest):
         return {"data": []}
 
     try:
-        query_vec = encode_texts([clean_text(request.query)])[0]        # (384,)
+        query_vec = encode_texts([preprocess_query(request.query)])[0]        # (384,)
         scores    = student_embeddings @ query_vec                       # (M,) cosine sim
 
         top_n   = min(request.top_n, len(students_meta))
@@ -222,8 +252,8 @@ async def recommend_students(request: QueryRequest):
 
         results = []
         for idx in top_idx:
-            # Enforce a minimum similarity threshold (e.g. 20%) to avoid vague matches
-            if scores[idx] < 0.20:
+            # Enforce a minimum similarity threshold to avoid vague matches
+            if scores[idx] < 0.05:
                 continue
             m = students_meta[idx]
             results.append({**m, "confidence": round(float(scores[idx]) * 100, 2)})
